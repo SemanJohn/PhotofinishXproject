@@ -4,7 +4,7 @@
    Pengaktifan versi baharu dikawal oleh halaman melalui mesej 'skipWaiting',
    supaya aplikasi tidak dimuat semula di tengah-tengah rakaman. */
 
-const VERSION = 'pf-skpr-v4.0.0';
+const VERSION = 'pf-skpr-v4.1.0';
 const SHELL = [
   './',
   './index.html',
