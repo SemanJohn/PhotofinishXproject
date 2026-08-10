@@ -47,6 +47,16 @@
   .cam-off .big{font-size:2rem}
   .cam-off .t{font-size:.82rem;font-weight:700;color:var(--dim);line-height:1.5}
   .btn-cam.off{background:#3d2020;border-color:#7d2b2b;color:#ff9d9d}
+  .lockbar{display:flex;gap:8px;flex-shrink:0}
+  .lockbar button{flex:1;background:#21262d;border:1px solid var(--line);color:var(--ink);
+    padding:9px;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer}
+  .lockbar button.on{background:#123d2a;border-color:var(--go);color:#7ee2a8}
+  .lockbar button.na{opacity:.45}
+  .sl2{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center}
+  .sl2 .mini{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--dim);font-weight:700;min-width:0}
+  .sl2 .mini span.v{width:38px;text-align:right;color:var(--ink)}
+  .sl2 .rst{background:#21262d;border:1px solid var(--line);color:var(--ink);
+    padding:7px 10px;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer}
   #livePreview{width:100%;height:54px;background:#000;border:1px solid var(--line);border-radius:8px;display:block;flex-shrink:0}
 
   .controls{background:var(--panel);padding:10px 12px calc(10px + env(safe-area-inset-bottom));
@@ -153,7 +163,10 @@
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
       </div>
     </div>
-    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.6</span></div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.7</span></div>
+    <div class="lockbar">
+      <button id="btnLock">🔓 KUNCI FOKUS & CAHAYA</button>
+    </div>
     <canvas id="livePreview" height="54"></canvas>
   </div>
 
@@ -186,6 +199,11 @@
     <div class="rev-ctrl">
       <div class="sl"><label>Garisan masa</label><input type="range" id="slMarker" min="0" max="100" value="0"><span class="val mono" id="vMarker">0%</span></div>
       <div class="sl"><label>Zum</label><input type="range" id="slZoom" min="50" max="800" step="10" value="100"><span class="val mono" id="vZoom">100%</span></div>
+      <div class="sl2">
+        <div class="mini">☀ <input type="range" id="slBright" min="40" max="260" value="100"><span class="v" id="vBright">100</span></div>
+        <div class="mini">◐ <input type="range" id="slContrast" min="40" max="260" value="100"><span class="v" id="vContrast">100</span></div>
+        <button class="rst" id="btnResetImg">↺</button>
+      </div>
       <div class="nudge">
         <button id="nudgeL2">⏪ −10</button>
         <button id="nudgeL1">◀ −1</button>
@@ -440,6 +458,7 @@ async function startCamera(){
   video.srcObject = stream;
   videoTrack = stream.getVideoTracks()[0];
   cameraOn = true;
+  camLocked = false;
   paintCamState();
   video.play().catch(()=>{});
   await applyZoomCapability();
@@ -452,6 +471,7 @@ async function startCamera(){
     $('metaCam').textContent = 'Kamera: ' + (video.videoWidth || '?') + '×' + (video.videoHeight || '?') +
                                (st.frameRate ? ' @' + Math.round(st.frameRate) + 'fps' : '') +
                                (maxFps ? ' (maks ' + maxFps + ')' : '');
+    paintLockButton();
     $('fpsHint').textContent = maxFps
       ? 'Kamera ini melaporkan maksimum ' + maxFps + ' fps pada resolusi semasa.'
       : 'Peranti ini tidak melaporkan kadar frame maksimum.';
@@ -682,6 +702,84 @@ function applyAutoSpeed(measured){
   $('slSpeed').value = v;
   $('vSpeed').textContent = v + ' (auto)';
 }
+
+/* ---------------- Kunci fokus, pendedahan & warna ----------------
+   Kamera telefon melaraskan diri sepanjang masa. Di tengah larian, pelarasan
+   itu menghasilkan jalur cerah-gelap pada imej. Menguncinya sebelum tembakan
+   memberi pendedahan sekata dari hujung ke hujung. */
+let camLocked = false;
+
+function lockableModes(){
+  const cap = (videoTrack && videoTrack.getCapabilities) ? videoTrack.getCapabilities() : {};
+  const has = k => Array.isArray(cap[k]) && cap[k].length > 1;
+  return {
+    cap,
+    focus: has('focusMode'),
+    expo:  has('exposureMode'),
+    wb:    has('whiteBalanceMode')
+  };
+}
+
+function paintLockButton(){
+  const b = $('btnLock');
+  const m = lockableModes();
+  const any = m.focus || m.expo || m.wb;
+  b.classList.toggle('on', camLocked);
+  b.classList.toggle('na', !any);
+  if(!any){ b.textContent = '🔒 Kunci tidak disokong pelayar ini'; return; }
+  b.textContent = camLocked ? '🔒 TERKUNCI — tekan untuk lepas' : '🔓 KUNCI FOKUS & CAHAYA';
+}
+
+async function toggleCamLock(){
+  if(!videoTrack || !videoTrack.applyConstraints) return;
+  const m = lockableModes();
+  if(!(m.focus || m.expo || m.wb)){
+    toast('Pelayar ini tidak membenarkan kunci kamera');
+    return;
+  }
+
+  const st  = videoTrack.getSettings ? videoTrack.getSettings() : {};
+  const cap = m.cap;
+  const pick = (list, want) => list.includes(want) ? want : (list.includes('single-shot') ? 'single-shot' : null);
+  const adv = {};
+
+  if(camLocked){
+    if(m.focus) adv.focusMode = 'continuous';
+    if(m.expo)  adv.exposureMode = 'continuous';
+    if(m.wb)    adv.whiteBalanceMode = 'continuous';
+  }else{
+    if(m.focus){
+      const md = pick(cap.focusMode, 'manual');
+      if(md){ adv.focusMode = md;
+        if(md === 'manual' && cap.focusDistance && st.focusDistance != null) adv.focusDistance = st.focusDistance; }
+    }
+    if(m.expo){
+      const md = pick(cap.exposureMode, 'manual');
+      if(md){ adv.exposureMode = md;
+        if(md === 'manual'){
+          if(cap.exposureTime && st.exposureTime != null) adv.exposureTime = st.exposureTime;
+          if(cap.iso && st.iso != null) adv.iso = st.iso;
+        }
+      }
+    }
+    if(m.wb){
+      const md = pick(cap.whiteBalanceMode, 'manual');
+      if(md){ adv.whiteBalanceMode = md;
+        if(md === 'manual' && cap.colorTemperature && st.colorTemperature != null) adv.colorTemperature = st.colorTemperature; }
+    }
+  }
+
+  try{
+    await videoTrack.applyConstraints({ advanced:[adv] });
+    camLocked = !camLocked;
+    paintLockButton();
+    toast(camLocked ? 'Fokus & cahaya dikunci' : 'Kembali ke automatik');
+  }catch(e){
+    toast('Kamera menolak kunci: ' + (e.message || e.name));
+  }
+}
+
+$('btnLock').addEventListener('click', toggleCamLock);
 
 /* ---------------- Kanvas jalur ---------------- */
 function resetStrip(){
@@ -991,6 +1089,7 @@ function buildReview(){
   // Skrin utama TIDAK disembunyikan (display:none akan menghentikan strim video
   // pada iOS dan memaksa kamera dibuka semula). Skrin semakan bertindih di atasnya.
   $('reviewScreen').style.display = 'flex';
+  paintImageAdjust();
   requestAnimationFrame(() => { applyZoom(); setMarker(markerX, true); });
 }
 
@@ -1175,12 +1274,64 @@ $('btnDelete').addEventListener('click', async () => {
   setStatus('Rakaman dibuang. Sedia untuk larian baharu.');
 });
 
+/* ---- kecerahan & kontras imej semakan ----
+   Dipakai pada paparan melalui penapis CSS, dan dibakar ke dalam PNG semasa
+   simpan. Kalau pelayar tiada penapis kanvas, piksel dilaras terus. */
+let imgBright = 100, imgContrast = 100, filterOk = null;
+
+function supportsCanvasFilter(){
+  if(filterOk !== null) return filterOk;
+  const t = document.createElement('canvas').getContext('2d');
+  t.filter = 'brightness(1.5)';
+  filterOk = (t.filter !== 'none' && t.filter !== undefined);
+  return filterOk;
+}
+
+function filterString(){
+  return 'brightness(' + imgBright + '%) contrast(' + imgContrast + '%)';
+}
+
+function paintImageAdjust(){
+  photo.style.filter = (imgBright === 100 && imgContrast === 100) ? 'none' : filterString();
+  $('vBright').textContent = imgBright;
+  $('vContrast').textContent = imgContrast;
+}
+
+function adjustPixels(c, w, h){
+  const d = c.getImageData(0, 0, w, h), a = d.data;
+  const br = imgBright / 100, ct = imgContrast / 100;
+  for(let i = 0; i < a.length; i += 4){
+    for(let k = 0; k < 3; k++){
+      let v = a[i + k] * br;
+      v = (v - 128) * ct + 128;
+      a[i + k] = v < 0 ? 0 : v > 255 ? 255 : v;
+    }
+  }
+  c.putImageData(d, 0, 0);
+}
+
+$('slBright').addEventListener('input', e => { imgBright = +e.target.value; paintImageAdjust(); });
+$('slContrast').addEventListener('input', e => { imgContrast = +e.target.value; paintImageAdjust(); });
+$('btnResetImg').addEventListener('click', () => {
+  imgBright = 100; imgContrast = 100;
+  $('slBright').value = 100; $('slContrast').value = 100;
+  paintImageAdjust();
+});
+
 /* ---- imej akhir: semua tanda dibakar ke dalam PNG ---- */
 function buildExportCanvas(){
   const ex = document.createElement('canvas');
   ex.width = photo.width; ex.height = photo.height;
   const c = ex.getContext('2d', {alpha:false});
-  c.drawImage(photo, 0, 0);
+  const adjusted = imgBright !== 100 || imgContrast !== 100;
+  if(adjusted && supportsCanvasFilter()){
+    c.filter = filterString();
+    c.drawImage(photo, 0, 0);
+    c.filter = 'none';
+  }else{
+    c.drawImage(photo, 0, 0);
+    if(adjusted) adjustPixels(c, ex.width, ex.height);
+  }
   c.font = '800 15px ui-monospace, monospace';
   c.textAlign = 'center';
 
@@ -1479,13 +1630,13 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       .then(reg => {
         swReg = reg;
         watchWorker(reg);
-        $('swState').textContent = 'Versi 4.6 — sedia digunakan tanpa internet.';
+        $('swState').textContent = 'Versi 4.7 — sedia digunakan tanpa internet.';
         setInterval(() => {
           checkUpdate(false);
           if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
         }, 60000);
       })
-      .catch(() => { $('swState').textContent = 'Versi 4.6 — mod luar talian tidak aktif.'; });
+      .catch(() => { $('swState').textContent = 'Versi 4.7 — mod luar talian tidak aktif.'; });
   });
 
   addEventListener('online', () => checkUpdate(false));
@@ -1493,7 +1644,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 4.6 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 4.7 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 $('btnUpdate').addEventListener('click', () => {
