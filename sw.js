@@ -1,7 +1,7 @@
 /* Photo Finish SKPR — service worker
    Strategi: cache app shell semasa install; guna cache dahulu, kemas kini di latar. */
 
-const VERSION = 'pf-skpr-v3.0.0';
+const VERSION = 'pf-skpr-v3.1.0';
 const SHELL = [
   './',
   './index.html',
