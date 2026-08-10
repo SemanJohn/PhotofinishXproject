@@ -154,7 +154,7 @@
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
       </div>
     </div>
-    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.0</span></div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.1</span></div>
     <canvas id="livePreview" height="54"></canvas>
   </div>
 
@@ -227,7 +227,7 @@
 
     <div class="field">
       <div class="lab">Kamera</div>
-      <select id="selCam"><option value="">Mengesan kamera…</option></select>
+      <select id="selCam"><option value="auto">Auto — pilih kamera terbaik</option></select>
       <div class="hint">Pada telefon, lensa ultra-wide biasanya muncul sebagai kamera berasingan.</div>
     </div>
 
@@ -341,7 +341,7 @@ const S = {
   eventName:'', stripH:360, maxW:20000,
   startDelay:0, autoStop:0,       // saat, diukur dari masa 0 (tembakan/MULA)
   targetFps:0, resW:1280, resH:720, // 0 = biar pelayar pilih
-  speedMode:'auto', probed:false
+  speedMode:'auto', probed:false, cameraAuto:true
 };
 
 let mode = 'idle';                 // idle | armed | running
@@ -379,7 +379,7 @@ async function listCameras(){
   try{
     const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
     const sel = $('selCam');
-    sel.innerHTML = '';
+    sel.innerHTML = '<option value="auto">Auto — pilih kamera terbaik</option>';
     devs.forEach((d,i) => {
       const o = document.createElement('option');
       o.value = d.deviceId;
@@ -390,7 +390,7 @@ async function listCameras(){
       const back = devs.find(d => /back|rear|environment/i.test(d.label));
       S.deviceId = (back || devs[0]).deviceId;
     }
-    if(S.deviceId) sel.value = S.deviceId;
+    sel.value = S.cameraAuto ? 'auto' : (S.deviceId || 'auto');
   }catch(e){ console.warn(e); }
 }
 
@@ -447,7 +447,7 @@ async function startCamera(){
     }
     resetStrip();
     if(!S.probed && !probing){
-      setTimeout(() => probeBest(true), 800);
+      setTimeout(() => S.cameraAuto ? probeAllCameras() : probeBest(true), 800);
     }else{
       measureFps(1200).then(applyAutoSpeed);
     }
@@ -538,6 +538,81 @@ const COMBOS = [
 ];
 
 let probing = false;
+
+/* Uji setiap kamera belakang, pilih yang memberi kadar frame tertinggi.
+   Seri dileraikan oleh resolusi, kemudian lensa biasa diutamakan berbanding
+   telefoto atau ultra-wide kerana bidang pandangannya paling sesuai untuk trek. */
+function lensBonus(label){
+  const l = (label || '').toLowerCase();
+  if(/ultra/.test(l)) return 0;
+  if(/tele/.test(l))  return 1;
+  if(/triple|dual/.test(l)) return 2;
+  return 3;
+}
+
+async function probeAllCameras(){
+  if(probing) return;
+  probing = true;
+  const info = platformInfo();
+  toast('Menguji semua kamera…');
+  $('diag').textContent = 'Menguji kamera…';
+
+  let devs = [];
+  try{ devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput'); }
+  catch(e){}
+  const backs = devs.filter(d => /back|rear|environment/i.test(d.label));
+  const list  = backs.length ? backs : devs;
+
+  let best = null;
+  for(const d of list){
+    let st = null;
+    try{ st = await navigator.mediaDevices.getUserMedia({ video:{ deviceId:{ exact:d.deviceId } }, audio:false }); }
+    catch(e){ continue; }
+    const tr = st.getVideoTracks()[0];
+    let found = null;
+    for(const [w, h, f] of COMBOS){
+      if(info.hardCap && f > info.hardCap) continue;
+      try{
+        await tr.applyConstraints({ width:{exact:w}, height:{exact:h}, frameRate:{exact:f} });
+        const s2 = tr.getSettings(), got = Math.round(s2.frameRate || 0);
+        if(got >= f - 2){ found = { w, h, f:got }; break; }
+      }catch(e){}
+    }
+    if(!found){
+      const s2 = tr.getSettings();
+      found = { w:s2.width || 0, h:s2.height || 0, f:Math.round(s2.frameRate || 0) };
+    }
+    st.getTracks().forEach(t => t.stop());
+
+    const score = found.f * 1e9 + found.w * found.h * 10 + lensBonus(d.label);
+    if(!best || score > best.score){
+      best = { score, id:d.deviceId, label:d.label || 'Kamera', ...found };
+    }
+  }
+
+  if(!best){ $('diag').textContent = 'Tiada kamera boleh diuji.'; probing = false; return; }
+
+  S.cameraAuto = true;
+  S.deviceId = best.id;
+  S.targetFps = best.f; S.resW = best.w; S.resH = best.h; S.probed = true;
+  $('selFps').value = String(best.f);
+  $('selRes').value = best.w + 'x' + best.h;
+  probing = false;
+
+  await startCamera();
+  const measured = await measureFps(1500);
+  applyAutoSpeed(measured);
+  saveSettings();
+
+  $('diag').innerHTML =
+    'Enjin: <b>' + info.engine + '</b><br>' +
+    'Kamera dipilih: <b>' + best.label + '</b><br>' +
+    'Mod: <b>' + best.w + '×' + best.h + ' @' + best.f + ' fps</b><br>' +
+    'Diukur sebenar: <b>' + measured + ' fps</b><br>' +
+    'Ketepatan masa: <b>±' + (1000 / Math.max(measured, 1) / 2).toFixed(1) + ' ms</b>' +
+    (info.hardCap ? '<br>Nota: iOS menghadkan pelayar pada ' + info.hardCap + ' fps.' : '');
+  toast(best.label + ' — ' + measured + ' fps');
+}
 async function probeBest(silent){
   if(probing || !videoTrack || !videoTrack.applyConstraints) return;
   probing = true;
@@ -575,7 +650,8 @@ async function probeBest(silent){
   $('diag').innerHTML =
     'Enjin: <b>' + info.engine + '</b><br>' +
     'Mod terbaik: <b>' + best.w + '×' + best.h + ' @' + best.f + ' fps</b><br>' +
-    'Diukur sebenar: <b>' + measured + ' fps</b> (≈' + (1000/Math.max(measured,1)).toFixed(1) + ' ms sekali frame)' +
+    'Diukur sebenar: <b>' + measured + ' fps</b><br>' +
+    'Ketepatan masa: <b>±' + (1000 / Math.max(measured, 1) / 2).toFixed(1) + ' ms</b>' +
     (info.hardCap ? '<br>Nota: iOS menghadkan pelayar pada ' + info.hardCap + ' fps.' : '');
 
   if(!silent) toast(best.w + '×' + best.h + ' @' + measured + ' fps');
@@ -644,17 +720,35 @@ function captureFrame(now){
 }
 
 let fpsCount = 0, fpsMark = 0, lastTick = 0, pumpGen = 0, frameTotal = 0;
+let clockOffset = null;
+
+/* Masa panggilan balik termasuk kelewatan render yang berubah-ubah setiap frame.
+   captureTime (bila ada) ialah masa frame ditangkap sensor. Kalau tiada, mediaTime
+   digunakan: ia stabil tetapi berlainan asalan, jadi asalannya dianggar dengan
+   kelewatan paling kecil yang pernah dilihat — kelewatan tidak boleh negatif. */
+function frameTime(now, meta){
+  if(meta){
+    if(typeof meta.captureTime === 'number' && meta.captureTime > 0) return meta.captureTime;
+    if(typeof meta.mediaTime === 'number'){
+      const est = now - meta.mediaTime * 1000;
+      if(clockOffset === null || est < clockOffset) clockOffset = est;
+      else clockOffset += (est - clockOffset) * 0.0005;   // benarkan hanyutan jam perlahan
+      return meta.mediaTime * 1000 + clockOffset;
+    }
+  }
+  return now;
+}
 
 /* Setiap rantaian frame diberi nombor generasi. Kalau rantaian lama tersekat
    (contohnya dialog asli menghentikan callback pada iOS), pengawas di bawah
    memulakan generasi baharu dan yang lama berhenti sendiri. */
 function pump(gen){
-  const tick = now => {
+  const tick = (now, meta) => {
     if(gen !== pumpGen) return;
     lastTick = now;
     frameTotal++;
     try{
-      captureFrame(now);
+      captureFrame(frameTime(now, meta));
       fpsCount++;
       if(now - fpsMark > 1000){
         const low = mode === 'running' && fpsCount * S.srcWidth < S.pxPerSec / 2;
@@ -664,11 +758,12 @@ function pump(gen){
     }catch(e){ console.error('tick', e); }
     pump(gen);
   };
-  if(video.requestVideoFrameCallback) video.requestVideoFrameCallback(now => tick(now));
-  else requestAnimationFrame(tick);
+  if(video.requestVideoFrameCallback) video.requestVideoFrameCallback((now, meta) => tick(now, meta));
+  else requestAnimationFrame(now => tick(now, null));
 }
 
 function restartPump(){
+  clockOffset = null;
   pumpGen++;
   lastTick = performance.now();
   pump(pumpGen);
@@ -795,7 +890,7 @@ async function initMic(){
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if(audioCtx.state === 'suspended') await audioCtx.resume();
     analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 1024;
+    analyser.fftSize = 512;   // tetingkap pendek supaya usia denyut mudah dianggar
     audioCtx.createMediaStreamSource(micStream).connect(analyser);
     tdBuf = new Uint8Array(analyser.fftSize);
     micTimer = setInterval(pollMic, 4);
@@ -812,15 +907,23 @@ function releaseMic(){
 function pollMic(){
   if(!analyser) return;
   analyser.getByteTimeDomainData(tdBuf);
-  let peak = 0;
+  let peak = 0, peakAt = tdBuf.length - 1;
   for(let i = 0; i < tdBuf.length; i++){
     const v = Math.abs(tdBuf[i] - 128);
-    if(v > peak) peak = v;
+    if(v > peak){ peak = v; peakAt = i; }
   }
   const level = Math.min(100, Math.round(peak / 128 * 100));
   const now = performance.now();
   if(now - lastMeter > 50){ $('micFill').style.width = level + '%'; lastMeter = now; }
-  if(mode === 'armed' && now - armedAt > 500 && level >= S.threshold) beginCapture(now);
+
+  if(mode === 'armed' && now - armedAt > 500 && level >= S.threshold){
+    /* Denyut itu berada di suatu tempat dalam penimbal, bukan pada saat kita
+       membacanya. Tolak usia sebenar sampel puncak supaya masa 0 jatuh tepat
+       pada tembakan, bukan pada masa polling. */
+    const sr  = (audioCtx && audioCtx.sampleRate) || 48000;
+    const age = ((tdBuf.length - peakAt) / sr) * 1000;
+    beginCapture(now - age);
+  }
 }
 
 /* ---------------- Skrin semakan ---------------- */
@@ -1141,7 +1244,7 @@ $('selTrig').addEventListener('change', e => {
   $('soundGroup').style.display = e.target.value === 'sound' ? 'flex' : 'none';
   if(e.target.value === 'sound') initMic();
 });
-$('btnProbe').addEventListener('click', () => probeBest(false));
+$('btnProbe').addEventListener('click', () => S.cameraAuto ? probeAllCameras() : probeBest(false));
 
 $('slThr').addEventListener('input', e => {
   S.threshold = +e.target.value;
@@ -1151,10 +1254,13 @@ $('slThr').addEventListener('input', e => {
 
 async function closeSettings(){
   $('settingModal').style.display = 'none';
-  const camChanged  = $('selCam').value && $('selCam').value !== S.deviceId;
+  const pick = $('selCam').value;
+  const wasAuto = S.cameraAuto;
+  S.cameraAuto = (pick === 'auto');
+  const camChanged = S.cameraAuto ? !wasAuto : (pick && pick !== S.deviceId);
   const lensChanged = $('selLens').value !== S.lensMode;
 
-  if($('selCam').value) S.deviceId = $('selCam').value;
+  if(pick && pick !== 'auto') S.deviceId = pick;
   S.lensMode  = $('selLens').value;
   S.direction = $('selDir').value;
   S.trigger   = $('selTrig').value;
@@ -1173,7 +1279,8 @@ async function closeSettings(){
   paintRunButton();
   saveSettings();
 
-  if(camChanged || fpsChanged || !cameraOn) await startCamera();
+  if(S.cameraAuto && (camChanged || !S.probed)) await probeAllCameras();
+  else if(camChanged || fpsChanged || !cameraOn) await startCamera();
   else if(lensChanged) await applyZoomCapability();
 
   if(S.trigger === 'sound'){
@@ -1194,7 +1301,7 @@ function saveSettings(){
     srcWidth:S.srcWidth, pxPerSec:S.pxPerSec, eventName:S.eventName,
     startDelay:S.startDelay, autoStop:S.autoStop,
     targetFps:S.targetFps, resW:S.resW, resH:S.resH,
-    speedMode:S.speedMode, probed:S.probed
+    speedMode:S.speedMode, probed:S.probed, cameraAuto:S.cameraAuto
   })); }catch(e){}
 }
 function loadSettings(){
@@ -1306,13 +1413,13 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       .then(reg => {
         swReg = reg;
         watchWorker(reg);
-        $('swState').textContent = 'Versi 4.0 — sedia digunakan tanpa internet.';
+        $('swState').textContent = 'Versi 4.1 — sedia digunakan tanpa internet.';
         setInterval(() => {
           checkUpdate(false);
           if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
         }, 60000);
       })
-      .catch(() => { $('swState').textContent = 'Versi 4.0 — mod luar talian tidak aktif.'; });
+      .catch(() => { $('swState').textContent = 'Versi 4.1 — mod luar talian tidak aktif.'; });
   });
 
   addEventListener('online', () => checkUpdate(false));
@@ -1320,7 +1427,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 4.0 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 4.1 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 $('btnUpdate').addEventListener('click', () => {
