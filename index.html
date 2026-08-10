@@ -2,78 +2,92 @@
 <html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Photo Finish Olahraga Realtime</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Photo Finish Realtime</title>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
-        body { background-color: #1a1a1a; color: #ffffff; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        h1 { margin-top: 0; color: #00ffcc; font-size: 1.4rem; text-align: center; }
-        .container { width: 100%; max-width: 1000px; display: flex; flex-direction: column; gap: 15px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        html, body { width: 100%; height: 100dvh; height: 100vh; overflow: hidden; background-color: #121212; color: #ffffff; display: flex; flex-direction: column; }
         
-        .video-box { position: relative; width: 100%; max-width: 640px; margin: 0 auto; background: #000; border: 2px solid #333; border-radius: 8px; overflow: hidden; }
-        video { width: 100%; height: auto; display: block; }
-        .finish-line-overlay { position: absolute; top: 0; bottom: 0; width: 2px; background-color: red; cursor: ew-resize; z-index: 10; }
-        
-        .controls { background: #2a2a2a; padding: 15px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
-        button { padding: 10px 16px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.9rem; }
-        .btn-start { background-color: #28a745; color: white; }
-        .btn-start:hover { background-color: #218838; }
-        .btn-pause { background-color: #ffc107; color: black; }
-        .btn-clear { background-color: #dc3545; color: white; }
-        .btn-save { background-color: #17a2b8; color: white; }
-        
-        .control-group { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
-        input[type="range"] { accent-color: #00ffcc; }
-        
-        .timer-display { font-size: 2.2rem; font-family: monospace; font-weight: bold; color: #00ffcc; text-align: center; background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333; }
+        /* Header Tajuk & Jam */
+        header { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #1e1e1e; border-bottom: 1px solid #333; height: 46px; flex-shrink: 0; }
+        .app-title { font-size: 0.9rem; font-weight: bold; color: #00ffcc; white-space: nowrap; }
+        .timer-display { font-size: 1.3rem; font-family: monospace; font-weight: bold; color: #00ffcc; background: #000; padding: 2px 8px; border-radius: 4px; border: 1px solid #00ffcc; }
 
-        .canvas-container { width: 100%; overflow-x: auto; background: #000; border: 2px solid #00ffcc; border-radius: 8px; position: relative; }
-        canvas { display: block; background: #111; cursor: crosshair; }
-        
-        .info-panel { font-size: 0.9rem; color: #ccc; text-align: center; background: #222; padding: 8px; border-radius: 5px; }
-        #inspectTime { color: #ffeb3b; font-weight: bold; font-family: monospace; }
+        /* Kawasan Utama (Kamera + Canvas) */
+        main { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 4px; overflow: hidden; }
+
+        /* Kotak Kamera Pratonton */
+        .video-box { position: relative; width: 100%; height: 30vh; background: #000; border-radius: 6px; overflow: hidden; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        .finish-line-overlay { position: absolute; top: 0; bottom: 0; width: 2px; background-color: red; z-index: 10; }
+
+        /* Bar Info Semakan Masa */
+        .inspector-bar { font-size: 0.8rem; color: #aaa; text-align: center; background: #1a1a1a; padding: 4px; border-radius: 4px; flex-shrink: 0; border: 1px solid #333; }
+        .inspector-bar span { color: #ffeb3b; font-weight: bold; font-family: monospace; font-size: 0.95rem; }
+
+        /* Kanvas Gambar Photo Finish */
+        .canvas-container { flex: 1; width: 100%; background: #000; border: 1.5px solid #00ffcc; border-radius: 6px; overflow-x: auto; overflow-y: hidden; position: relative; }
+        canvas { display: block; height: 100%; background: #111; cursor: crosshair; }
+
+        /* Panel Butang Utama */
+        footer { background: #1e1e1e; padding: 6px 8px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+        .button-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr 0.8fr; gap: 6px; }
+        button { padding: 9px 2px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.75rem; text-align: center; }
+        .btn-start { background-color: #28a745; color: white; }
+        .btn-stop { background-color: #dc3545; color: white; }
+        .btn-inspect { background-color: #ffc107; color: black; }
+        .btn-save { background-color: #17a2b8; color: white; }
+
+        .slider-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.7rem; color: #ccc; }
+        .slider-group { display: flex; align-items: center; gap: 4px; flex: 1; }
+        input[type="range"] { width: 100%; accent-color: #00ffcc; height: 16px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Sistem Photo Finish Olahraga Realtime</h1>
-    
-    <div class="timer-display" id="timerDisplay">00:00.000</div>
+    <header>
+        <div class="app-title">PHOTO FINISH</div>
+        <div class="timer-display" id="timerDisplay">00:00.000</div>
+    </header>
 
-    <!-- Pratonton Kamera & Garisan Penamat -->
-    <div class="video-box" id="videoBox">
-        <video id="webcam" autoplay playsinline muted></video>
-        <div class="finish-line-overlay" id="finishLine" style="left: 50%;"></div>
-    </div>
-
-    <!-- Panel Kawalan -->
-    <div class="controls">
-        <button class="btn-start" id="btnStartTimer">▶ MULA LARIAN (RESET TIMER)</button>
-        <button class="btn-pause" id="btnToggleScan">⏸ PAUSE / RESUME</button>
-        <button class="btn-clear" id="btnClear">🗑 CLEAR CANVAS</button>
-        <button class="btn-save" id="btnSave">💾 SIMPAN GAMBAR</button>
-        
-        <div class="control-group">
-            <label>Kedudukan Garisan (X):</label>
-            <input type="range" id="slitPosSlider" min="0" max="100" value="50">
+    <main>
+        <!-- Kamera Pratonton -->
+        <div class="video-box">
+            <video id="webcam" autoplay playsinline muted></video>
+            <div class="finish-line-overlay" id="finishLine" style="left: 50%;"></div>
         </div>
-        <div class="control-group">
-            <label>Lebar Slice:</label>
-            <input type="range" id="sliceWidthSlider" min="1" max="5" value="2">
-            <span id="sliceWidthVal">2px</span>
+
+        <!-- Bar Keputusan Semakan Masa -->
+        <div class="inspector-bar">
+            Masa Pelari: <span id="inspectTime">--:--.---</span>
         </div>
-    </div>
 
-    <div class="info-panel">
-        Klik pada imej Photo Finish di bawah untuk menyemak masa tepat pelari: <span id="inspectTime">--:--.---</span>
-    </div>
+        <!-- Kanvas Photo Finish -->
+        <div class="canvas-container" id="canvasScroll">
+            <canvas id="photoCanvas" height="300" width="3000"></canvas>
+        </div>
+    </main>
 
-    <!-- Kanvas Photo Finish -->
-    <div class="canvas-container" id="canvasScroll">
-        <canvas id="photoCanvas" height="400" width="3000"></canvas>
-    </div>
-</div>
+    <footer>
+        <div class="button-row">
+            <button class="btn-start" id="btnStart">▶ START</button>
+            <button class="btn-stop" id="btnStop">⏹ STOP</button>
+            <button class="btn-inspect" id="btnInspect">🔍 SEMAK SLICE</button>
+            <button class="btn-save" id="btnSave">💾 SIMPAN</button>
+        </div>
+
+        <div class="slider-row">
+            <div class="slider-group">
+                <label>Garisan:</label>
+                <input type="range" id="slitPosSlider" min="0" max="100" value="50">
+            </div>
+            <div class="slider-group" style="max-width: 110px;">
+                <label>Slice:</label>
+                <input type="range" id="sliceWidthSlider" min="1" max="5" value="2">
+                <span id="sliceWidthVal">2px</span>
+            </div>
+        </div>
+    </footer>
 
 <script>
     const video = document.getElementById('webcam');
@@ -83,26 +97,25 @@
     const timerDisplay = document.getElementById('timerDisplay');
     const inspectTime = document.getElementById('inspectTime');
     
-    const btnStartTimer = document.getElementById('btnStartTimer');
-    const btnToggleScan = document.getElementById('btnToggleScan');
-    const btnClear = document.getElementById('btnClear');
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const btnInspect = document.getElementById('btnInspect');
     const btnSave = document.getElementById('btnSave');
     const slitPosSlider = document.getElementById('slitPosSlider');
     const sliceWidthSlider = document.getElementById('sliceWidthSlider');
     const sliceWidthVal = document.getElementById('sliceWidthVal');
     const canvasScroll = document.getElementById('canvasScroll');
 
-    let isScanning = true;
+    let isScanning = false;
     let startTime = null;
     let timerInterval = null;
     let currentX = 0;
     let sliceWidth = parseInt(sliceWidthSlider.value);
-    let slitPercent = 0.5; // Kedudukan garisan lalai (50%)
+    let slitPercent = 0.5;
     
-    // Menyimpan rekod masa (ms) bagi setiap piksel paksi-X canvas
     let timeAtPixel = [];
+    let rawCanvasData = null; // Menyimpan salinan asal imej untuk garisan semakan
 
-    // Mengakses Kamera Belakang (Environment)
     async function initCamera() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -120,11 +133,10 @@
                 clearCanvas();
             };
         } catch (err) {
-            alert('Gagal mengakses kamera: ' + err.message + '\nSila pastikan anda menggunakan HTTPS atau localhost dan membenarkan kebenaran (permission) kamera.');
+            alert('Gagal mengakses kamera: ' + err.message);
         }
     }
 
-    // Melaraskan Garisan Penamat
     slitPosSlider.addEventListener('input', (e) => {
         slitPercent = e.target.value / 100;
         finishLine.style.left = `${e.target.value}%`;
@@ -135,8 +147,9 @@
         sliceWidthVal.innerText = `${sliceWidth}px`;
     });
 
-    // Mula Pemasa Larian
-    btnStartTimer.addEventListener('click', () => {
+    // 1. BUTANG START
+    btnStart.addEventListener('click', () => {
+        isScanning = true;
         startTime = performance.now();
         currentX = 0;
         timeAtPixel = [];
@@ -144,7 +157,41 @@
         
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(updateTimerDisplay, 10);
+        inspectTime.innerText = "Larian Sedang Berlangsung...";
     });
+
+    // 2. BUTANG STOP
+    btnStop.addEventListener('click', () => {
+        isScanning = false;
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        inspectTime.innerText = "Larian Diberhentikan. Tekan 'SEMAK SLICE' untuk menyemak masa.";
+        saveCanvasState();
+    });
+
+    // 3. BUTANG SEMAK SLICE
+    btnInspect.addEventListener('click', () => {
+        isScanning = false;
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        saveCanvasState();
+        inspectTime.innerText = "Sentuh pada gambar di bawah untuk semak masa pelari";
+        canvasScroll.scrollLeft = 0;
+    });
+
+    function saveCanvasState() {
+        rawCanvasData = ctx.getImageData(0, 0, photoCanvas.width, photoCanvas.height);
+    }
+
+    function restoreCanvasState() {
+        if (rawCanvasData) {
+            ctx.putImageData(rawCanvasData, 0, 0);
+        }
+    }
 
     function updateTimerDisplay() {
         if (!startTime) return;
@@ -161,54 +208,40 @@
         return `${min}:${sec}.${milli}`;
     }
 
-    // Membersihkan Canvas
     function clearCanvas() {
         ctx.fillStyle = '#111';
         ctx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
         currentX = 0;
         timeAtPixel = [];
+        rawCanvasData = null;
     }
 
-    btnClear.addEventListener('click', clearCanvas);
-
-    btnToggleScan.addEventListener('click', () => {
-        isScanning = !isScanning;
-        btnToggleScan.innerText = isScanning ? "⏸ PAUSE" : "▶ RESUME";
-    });
-
-    // Gelung Real-Time Slit Scan
     function processFrame() {
         if (isScanning && video.readyState === video.HAVE_ENOUGH_DATA) {
             const videoWidth = video.videoWidth;
             const videoHeight = video.videoHeight;
             const sourceX = Math.floor(videoWidth * slitPercent);
 
-            // Memperluaskan canvas jika melebihi saiz asal
             if (currentX + sliceWidth > photoCanvas.width) {
                 expandCanvas();
             }
 
-            // Memotong jalur menegak daripada video dan melukis pada canvas
             ctx.drawImage(
                 video,
                 sourceX, 0, sliceWidth, videoHeight,
                 currentX, 0, sliceWidth, photoCanvas.height
             );
 
-            // Simpan rekod masa bagi jalur ini
             const currentTime = startTime ? (performance.now() - startTime) : 0;
             for (let w = 0; w < sliceWidth; w++) {
                 timeAtPixel[currentX + w] = currentTime;
             }
 
-            // Melukis tanda masa pada bahagian bawah
             if (startTime) {
                 drawTimeMark(currentX, currentTime);
             }
 
             currentX += sliceWidth;
-
-            // Auto-scroll kanvas ke kanan mengikut perkembangan larian
             canvasScroll.scrollLeft = currentX;
         }
 
@@ -237,18 +270,29 @@
         }
     }
 
-    // Semakan Masa Tempatan Melalui Klik Pada Gambar
+    // Klik/Sentuh Gambar Slice
     photoCanvas.addEventListener('click', (e) => {
         const rect = photoCanvas.getBoundingClientRect();
         const clickX = Math.floor(e.clientX - rect.left);
+        
         if (timeAtPixel[clickX] !== undefined) {
+            restoreCanvasState();
+
+            // Lukis garisan penanda kuning di lokasi sentuhan
+            ctx.strokeStyle = '#ffeb3b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(clickX, 0);
+            ctx.lineTo(clickX, photoCanvas.height);
+            ctx.stroke();
+
             inspectTime.innerText = `${formatTime(timeAtPixel[clickX])}`;
         } else {
-            inspectTime.innerText = "Tiada rekod masa pada koordinat ini";
+            inspectTime.innerText = "Tiada rekod masa pada titik ini";
         }
     });
 
-    // Simpan Gambar Photo Finish
+    // Butang Simpan
     btnSave.addEventListener('click', () => {
         const exportCanvas = document.createElement('canvas');
         exportCanvas.width = Math.max(currentX, 100);
