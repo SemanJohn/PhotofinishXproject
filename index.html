@@ -51,7 +51,11 @@
 
   .controls{background:var(--panel);padding:10px 12px calc(10px + env(safe-area-inset-bottom));
     border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;flex-shrink:0}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn-run{width:100%;padding:16px;border:none;border-radius:10px;font-weight:800;font-size:1.05rem;
+    color:#fff;cursor:pointer;letter-spacing:.03em;transition:background .12s}
+  .btn-run.go{background:var(--go)}
+  .btn-run.stop{background:var(--stop)}
+  .btn-run.wait{background:#9a6700}
   .btn-lg{padding:14px;border:none;border-radius:10px;font-weight:800;font-size:1rem;cursor:pointer;color:#fff}
   .btn-go{background:var(--go)} .btn-stop{background:var(--stop)}
   .sliders{display:flex;flex-direction:column;gap:8px}
@@ -102,7 +106,7 @@
   .b-back{background:#484f58} .b-del{background:var(--stop)} .b-save{background:var(--go)}
 
   /* ---------- TETAPAN ---------- */
-  #settingModal{display:none;position:absolute;inset:0;background:rgba(0,0,0,.88);z-index:200;
+  #settingModal,#confirmModal{display:none;position:absolute;inset:0;background:rgba(0,0,0,.88);z-index:200;
     justify-content:center;align-items:center;padding:14px}
   .sbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:480px;
     padding:16px;display:flex;flex-direction:column;gap:14px;max-height:88dvh;overflow-y:auto}
@@ -150,15 +154,12 @@
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
       </div>
     </div>
-    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v3.4</span></div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v3.6</span></div>
     <canvas id="livePreview" height="54"></canvas>
   </div>
 
   <div class="controls">
-    <div class="row2">
-      <button class="btn-lg btn-go" id="btnStart">▶ MULA</button>
-      <button class="btn-lg btn-stop" id="btnStop">⏹ BERHENTI</button>
-    </div>
+    <button class="btn-run go" id="btnRun">▶ MULA</button>
     <div class="sliders">
       <div class="sl"><label>Garisan</label><input type="range" id="slSlit" min="0" max="100" value="50"><span class="val mono" id="vSlit">50%</span></div>
       <div class="sl"><label>Lebar imbas</label><input type="range" id="slSrc" min="1" max="6" value="2"><span class="val mono" id="vSrc">2 px</span></div>
@@ -266,9 +267,30 @@
       <div class="hint">Selepas menekan SEDIA, sistem abai bunyi selama 0.5 saat supaya bunyi tekan butang tidak mencetuskan masa.</div>
     </div>
 
+    <div class="field">
+      <div class="lab">Automasi masa (saat, dari masa 0)</div>
+      <div class="sl"><label style="width:auto;flex:1">Mula rakam pada saat</label>
+        <input type="number" id="inDelay" min="0" max="600" step="0.5" value="0" inputmode="decimal"
+               style="width:92px;padding:8px;text-align:center"></div>
+      <div class="sl"><label style="width:auto;flex:1">Henti automatik pada saat</label>
+        <input type="number" id="inAuto" min="0" max="600" step="0.5" value="0" inputmode="decimal"
+               style="width:92px;padding:8px;text-align:center"></div>
+      <div class="hint">Jam sentiasa bermula pada 0 semasa tembakan. Contoh 100m: mula rakam pada saat 10, henti pada saat 20 — imej lebih kecil, masa tetap tepat. Isi 0 untuk matikan.</div>
+    </div>
+
     <button class="btn-ghost" id="btnInstall" style="display:none">⬇ PASANG KE SKRIN UTAMA</button>
     <button class="btn-primary" id="btnApply">SIMPAN & TUTUP</button>
-    <div class="hint" id="swState">Versi 3.4 — mod luar talian sedia.</div>
+    <div class="hint" id="swState">Versi 3.6 — mod luar talian sedia.</div>
+  </div>
+</div>
+
+<div id="confirmModal">
+  <div class="sbox" style="max-width:340px">
+    <div class="stitle" id="confirmText" style="font-size:.92rem;line-height:1.5">Teruskan?</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn-act b-back" id="confirmNo">BATAL</button>
+      <button class="btn-act b-del" id="confirmYes">YA</button>
+    </div>
   </div>
 </div>
 
@@ -288,12 +310,14 @@ const S = {
   deviceId:'', lensMode:'normal', direction:'left_to_right',
   trigger:'manual', threshold:45,
   slitPct:0.50, srcWidth:2, pxPerSec:240,
-  eventName:'', stripH:360, maxW:20000
+  eventName:'', stripH:360, maxW:20000,
+  startDelay:0, autoStop:0        // saat, diukur dari masa 0 (tembakan/MULA)
 };
 
 let mode = 'idle';                 // idle | armed | running
 let startTime = 0, lastX = 0;
 let strip = null, sctx = null;
+let stripT0 = 0;                   // masa (ms) yang diwakili oleh piksel pertama jalur
 let stream = null, videoTrack = null, cameraOn = true;
 let markerX = 0, zoom = 1, viewScale = 1;
 let marks = [];                    // [{x, t}] tanda kekal pada imej
@@ -391,8 +415,8 @@ function paintCamState(){
   b.textContent = cameraOn ? '📷 KAMERA ON' : '📷 KAMERA OFF';
   b.classList.toggle('off', !cameraOn);
   $('camOff').style.display = cameraOn ? 'none' : 'flex';
-  $('btnStart').disabled = !cameraOn;
-  $('btnStart').style.opacity = cameraOn ? '1' : '.4';
+  $('btnRun').disabled = !cameraOn;
+  $('btnRun').style.opacity = cameraOn ? '1' : '.4';
 }
 
 $('btnCam').addEventListener('click', async () => {
@@ -455,7 +479,12 @@ function captureFrame(now){
   const elapsed = now - startTime;
   if(elapsed < 0) return;
 
-  const x = Math.round(elapsed * S.pxPerSec / 1000);
+  if(S.autoStop > 0 && elapsed >= S.autoStop * 1000){ stopCapture('auto'); return; }
+
+  const rel = elapsed - stripT0;      // jalur bermula selepas tempoh lengah
+  if(rel < 0) return;
+
+  const x = Math.round(rel * S.pxPerSec / 1000);
   if(x <= lastX) return;
   if(!ensureWidth(x)){ stopCapture('had'); return; }
 
@@ -467,25 +496,56 @@ function captureFrame(now){
   lastX = x;
 }
 
-let fpsCount = 0, fpsMark = 0;
-function pump(){
+let fpsCount = 0, fpsMark = 0, lastTick = 0, pumpGen = 0;
+
+/* Setiap rantaian frame diberi nombor generasi. Kalau rantaian lama tersekat
+   (contohnya dialog asli menghentikan callback pada iOS), pengawas di bawah
+   memulakan generasi baharu dan yang lama berhenti sendiri. */
+function pump(gen){
   const tick = now => {
-    captureFrame(now);
-    fpsCount++;
-    if(now - fpsMark > 1000){
-      const low = mode === 'running' && fpsCount * S.srcWidth < S.pxPerSec / 2;
-      $('metaFps').textContent = 'FPS: ' + fpsCount + (low ? ' ⚠ rendah' : '');
-      fpsCount = 0; fpsMark = now;
-    }
-    pump();
+    if(gen !== pumpGen) return;
+    lastTick = now;
+    try{
+      captureFrame(now);
+      fpsCount++;
+      if(now - fpsMark > 1000){
+        const low = mode === 'running' && fpsCount * S.srcWidth < S.pxPerSec / 2;
+        $('metaFps').textContent = 'FPS: ' + fpsCount + (low ? ' \u26a0 rendah' : '');
+        fpsCount = 0; fpsMark = now;
+      }
+    }catch(e){ console.error('tick', e); }
+    pump(gen);
   };
   if(video.requestVideoFrameCallback) video.requestVideoFrameCallback(now => tick(now));
   else requestAnimationFrame(tick);
 }
 
+function restartPump(){
+  pumpGen++;
+  lastTick = performance.now();
+  pump(pumpGen);
+}
+
+/* Pengawas: kalau tiada frame masuk lebih 1.5 saat sedangkan kamera sepatutnya
+   hidup, cuba main semula video dan mulakan rantaian frame baharu. */
+setInterval(() => {
+  if(!cameraOn || !stream || document.visibilityState !== 'visible') return;
+  if(performance.now() - lastTick < 1500) return;
+  const t = stream.getVideoTracks()[0];
+  if(!t || t.readyState === 'ended'){ startCamera(); return; }
+  video.play().catch(()=>{});
+  restartPump();
+}, 1000);
+
 function uiLoop(){
   if(mode === 'running'){
-    $('clock').textContent = fmt(performance.now() - startTime);
+    const el = performance.now() - startTime;
+    $('clock').textContent = fmt(el);
+    if(stripT0 > 0 && el < stripT0){
+      setStatus('⏳ Rakaman bermula dalam ' + ((stripT0 - el) / 1000).toFixed(1) + ' s…', 'var(--warn)');
+    }else if(stripT0 > 0 && el < stripT0 + 400){
+      setStatus('▶ Merakam… tekan TAMAT selepas pelari melintas.', 'var(--accent)');
+    }
     if(lastX > 0){
       const shown = Math.min(lastX, 900);
       pctx.fillStyle = '#000'; pctx.fillRect(0, 0, preview.width, preview.height);
@@ -501,38 +561,62 @@ function uiLoop(){
 /* ---------------- Mula / Berhenti ---------------- */
 function beginCapture(t0){
   mode = 'running'; startTime = t0;
+  stripT0 = Math.max(0, S.startDelay) * 1000;
   resetStrip();
   $('clock').textContent = '0.000';
-  setStatus('▶ Merakam… tekan BERHENTI selepas pelari melintas.', 'var(--accent)');
+  setStatus(stripT0 > 0
+    ? '⏳ Masa berjalan — rakaman bermula pada saat ' + S.startDelay + '.'
+    : '▶ Merakam… tekan TAMAT selepas pelari melintas.', 'var(--accent)');
+  paintRunButton();
   requestWakeLock();
 }
 
 function stopCapture(reason){
   const was = (mode === 'running');
   mode = 'idle'; armedAt = 0;
+  paintRunButton();
   if(!was || lastX < 2){
-    setStatus(reason === 'had' ? 'Had rakaman dicapai.' : 'Belum ada rakaman. Tekan MULA dahulu.');
+    setStatus(reason === 'had' ? 'Had rakaman dicapai.'
+            : reason === 'auto' ? 'Henti automatik — tiada imej dirakam.'
+            : 'Belum ada rakaman. Tekan MULA dahulu.');
     return false;
   }
   buildReview();
   return true;
 }
 
-$('btnStart').addEventListener('click', () => {
-  if(mode === 'running') return;
+/* Satu butang untuk semua keadaan: MULA ➔ TAMAT ➔ MULA */
+function paintRunButton(){
+  const b = $('btnRun');
+  b.classList.remove('go', 'stop', 'wait');
+  if(mode === 'running'){
+    b.classList.add('stop');
+    b.textContent = '⏹ TAMAT';
+  }else if(mode === 'armed'){
+    b.classList.add('wait');
+    b.textContent = '✖ BATAL SEDIA';
+  }else{
+    b.classList.add('go');
+    b.textContent = S.trigger === 'sound' ? '🎤 SEDIA' : '▶ MULA';
+  }
+}
+
+$('btnRun').addEventListener('click', () => {
+  if(mode === 'running'){ stopCapture('manual'); return; }
+  if(mode === 'armed'){
+    mode = 'idle'; paintRunButton();
+    setStatus('Dibatalkan. Tekan SEDIA semula.');
+    return;
+  }
   if(S.trigger === 'sound'){
     mode = 'armed'; armedAt = performance.now();
     $('clock').textContent = '0.000';
     setStatus('🎤 SEDIA — menunggu bunyi pelepas…', 'var(--warn)');
+    paintRunButton();
     initMic();
   }else{
     beginCapture(performance.now());
   }
-});
-
-$('btnStop').addEventListener('click', () => {
-  if(mode === 'armed'){ mode = 'idle'; setStatus('Dibatalkan. Tekan SEDIA semula.'); return; }
-  stopCapture('manual');
 });
 
 addEventListener('keydown', e => {
@@ -541,7 +625,7 @@ addEventListener('keydown', e => {
   if(e.code === 'Space'){
     e.preventDefault();
     if(inReview) addMark();
-    else (mode === 'running' || mode === 'armed') ? $('btnStop').click() : $('btnStart').click();
+    else $('btnRun').click();
   }
   if(!inReview) return;
   if(e.key === 'Escape') $('btnBack').click();
@@ -604,7 +688,7 @@ const isFlipped = () => flipView;
 function timeAtX(xDisp){
   const W = photo.width;
   const xt = isFlipped() ? (W - 1 - xDisp) : xDisp;
-  return xt / S.pxPerSec * 1000;
+  return stripT0 + xt / S.pxPerSec * 1000;
 }
 
 function renderStripCanvas(){
@@ -645,8 +729,12 @@ function drawScale(c, W, H){
   const pps = S.pxPerSec, flip = isFlipped();
   c.font = '600 11px ui-monospace, monospace';
   c.textAlign = 'center';
-  for(let t = 0; t <= W / pps; t += 0.1){
-    const xt = t * pps;
+  const base = stripT0 / 1000;                 // masa mutlak pada piksel pertama
+  const span = W / pps;
+  const first = Math.ceil(base * 10) / 10;
+  for(let tAbs = first; tAbs <= base + span + 1e-9; tAbs += 0.1){
+    const t = tAbs;
+    const xt = (tAbs - base) * pps;
     const x = flip ? (W - 1 - xt) : xt;
     const major = Math.abs(t - Math.round(t)) < 1e-6;
     c.strokeStyle = major ? 'rgba(255,80,80,.85)' : 'rgba(255,255,255,.28)';
@@ -718,9 +806,9 @@ $('btnUndo').addEventListener('click', () => {
   if(!marks.length) return;
   marks.pop(); renderMarks(); toast('Tanda terakhir dibuang');
 });
-$('btnClearMarks').addEventListener('click', () => {
+$('btnClearMarks').addEventListener('click', async () => {
   if(!marks.length) return;
-  if(!confirm('Kosongkan semua tanda?')) return;
+  if(!await askConfirm('Kosongkan semua tanda?')) return;
   marks = []; renderMarks();
 });
 
@@ -780,16 +868,34 @@ addEventListener('resize', () => { if($('reviewScreen').style.display === 'flex'
 
 $('btnBack').addEventListener('click', () => {
   $('reviewScreen').style.display = 'none';
-  if(cameraOn) video.play().catch(()=>{});
+  if(cameraOn){ video.play().catch(()=>{}); restartPump(); }
   setStatus('Rakaman masih dalam memori. Tekan MULA untuk larian baharu.');
 });
 
-$('btnDelete').addEventListener('click', () => {
-  if(!confirm('Buang rakaman ini?')) return;
+/* confirm() asli menghentikan requestVideoFrameCallback pada iOS dan
+   menyebabkan paparan kamera beku, jadi pengesahan dibuat dalam app. */
+function askConfirm(text){
+  return new Promise(resolve => {
+    $('confirmText').textContent = text;
+    $('confirmModal').style.display = 'flex';
+    const done = ans => {
+      $('confirmModal').style.display = 'none';
+      $('confirmYes').onclick = null;
+      $('confirmNo').onclick = null;
+      if(cameraOn) video.play().catch(()=>{});
+      resolve(ans);
+    };
+    $('confirmYes').onclick = () => done(true);
+    $('confirmNo').onclick  = () => done(false);
+  });
+}
+
+$('btnDelete').addEventListener('click', async () => {
+  if(!await askConfirm('Buang rakaman ini? Semua tanda akan hilang.')) return;
   marks = []; resetStrip();
   $('clock').textContent = '0.000';
   $('reviewScreen').style.display = 'none';
-  if(cameraOn) video.play().catch(()=>{});
+  if(cameraOn){ video.play().catch(()=>{}); restartPump(); }
   setStatus('Rakaman dibuang. Sedia untuk larian baharu.');
 });
 
@@ -900,17 +1006,22 @@ async function closeSettings(){
   S.direction = $('selDir').value;
   S.trigger   = $('selTrig').value;
   S.eventName = $('inEvent').value.trim();
+  S.startDelay = Math.max(0, parseFloat($('inDelay').value) || 0);
+  S.autoStop   = Math.max(0, parseFloat($('inAuto').value)  || 0);
+  if(S.autoStop > 0 && S.autoStop <= S.startDelay){
+    S.autoStop = 0; $('inAuto').value = 0;
+    toast('Henti automatik mesti lewat daripada masa mula — dimatikan');
+  }
+  paintRunButton();
   saveSettings();
 
   if(camChanged || (lensChanged && !cameraOn)) await startCamera();
   else if(lensChanged) await applyZoomCapability();
 
   if(S.trigger === 'sound'){
-    $('btnStart').textContent = '🎤 SEDIA';
     setStatus('Mod bunyi — tekan SEDIA sebelum pelepas menembak.');
     initMic();
   }else{
-    $('btnStart').textContent = '▶ MULA';
     setStatus('Mod manual — tekan MULA untuk merakam.');
     releaseMic();
   }
@@ -922,7 +1033,8 @@ function saveSettings(){
   try{ localStorage.setItem(KEY, JSON.stringify({
     deviceId:S.deviceId, lensMode:S.lensMode, direction:S.direction,
     trigger:S.trigger, threshold:S.threshold, slitPct:S.slitPct,
-    srcWidth:S.srcWidth, pxPerSec:S.pxPerSec, eventName:S.eventName
+    srcWidth:S.srcWidth, pxPerSec:S.pxPerSec, eventName:S.eventName,
+    startDelay:S.startDelay, autoStop:S.autoStop
   })); }catch(e){}
 }
 function loadSettings(){
@@ -932,6 +1044,8 @@ function loadSettings(){
     Object.assign(S, JSON.parse(raw));
   }catch(e){}
   $('inEvent').value = S.eventName || '';
+  $('inDelay').value = S.startDelay || 0;
+  $('inAuto').value  = S.autoStop || 0;
   $('selLens').value = S.lensMode;
   $('selDir').value  = S.direction;
   $('selTrig').value = S.trigger;
@@ -941,7 +1055,7 @@ function loadSettings(){
   $('finishLine').style.left = (S.slitPct * 100) + '%';
   $('slSrc').value = S.srcWidth; $('vSrc').textContent = S.srcWidth + ' px';
   $('slSpeed').value = S.pxPerSec; $('vSpeed').textContent = S.pxPerSec;
-  $('btnStart').textContent = S.trigger === 'sound' ? '🎤 SEDIA' : '▶ MULA';
+  paintRunButton();
 }
 ['slSlit','slSrc','slSpeed'].forEach(id => $(id).addEventListener('change', saveSettings));
 $('slThr').addEventListener('change', saveSettings);
@@ -954,7 +1068,7 @@ async function requestWakeLock(){
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState !== 'visible') return;
   if(mode === 'running') requestWakeLock();
-  if(cameraOn && video.srcObject && video.paused) video.play().catch(()=>{});
+  if(cameraOn && video.srcObject){ video.play().catch(()=>{}); restartPump(); }
 });
 
 /* ---------------- PWA ---------------- */
@@ -975,11 +1089,11 @@ addEventListener('appinstalled', () => { $('btnInstall').style.display = 'none';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(() => { $('swState').textContent = 'Versi 3.4 — sedia digunakan tanpa internet.'; })
-      .catch(() => { $('swState').textContent = 'Versi 3.4 — mod luar talian tidak aktif.'; });
+      .then(() => { $('swState').textContent = 'Versi 3.6 — sedia digunakan tanpa internet.'; })
+      .catch(() => { $('swState').textContent = 'Versi 3.6 — mod luar talian tidak aktif.'; });
   });
 }else{
-  $('swState').textContent = 'Versi 3.4 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 3.6 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 /* ---------------- Mula ---------------- */
@@ -987,7 +1101,7 @@ function boot(){
   preview.width = preview.clientWidth || 640;
   loadSettings();
   startCamera();
-  pump();
+  restartPump();
   uiLoop();
 }
 addEventListener('load', boot);
