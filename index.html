@@ -1,642 +1,747 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistem Photo Finish Olahraga</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        html, body { width: 100%; height: 100dvh; height: 100vh; overflow: hidden; background-color: #121212; color: #ffffff; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>Photo Finish SKPR</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --line:#262d38; --ink:#e6edf3; --dim:#8b96a5;
+    --accent:#00e5c0; --warn:#ffd54a; --go:#2ea043; --stop:#da3633;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100dvh;overflow:hidden;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  button{font-family:inherit}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
 
-        /* 1. SKRIN UTAMA (MAIN PAGE) */
-        #mainScreen { display: flex; flex-direction: column; height: 100%; width: 100%; }
-        header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1e1e1e; border-bottom: 1px solid #333; height: 50px; flex-shrink: 0; }
-        .header-left { display: flex; align-items: center; gap: 8px; }
-        .app-title { font-size: 0.9rem; font-weight: bold; color: #00ffcc; }
-        .timer-display { font-size: 1.35rem; font-family: monospace; font-weight: bold; color: #00ffcc; background: #000; padding: 2px 8px; border-radius: 4px; border: 1px solid #00ffcc; }
-        
-        .btn-icon { background: #333; border: 1px solid #555; color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
-        .btn-icon:hover { background: #444; }
+  /* ---------- SKRIN UTAMA ---------- */
+  #mainScreen{display:flex;flex-direction:column;height:100%;padding-bottom:env(safe-area-inset-bottom)}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-shrink:0}
+  .brand{font-size:.72rem;font-weight:800;letter-spacing:.14em;color:var(--accent)}
+  .clock{font-size:1.45rem;font-weight:700;color:var(--accent);background:#000;
+    padding:2px 10px;border-radius:6px;border:1px solid rgba(0,229,192,.45)}
+  .btn-icon{background:#21262d;border:1px solid var(--line);color:var(--ink);
+    padding:8px 11px;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer}
+  .btn-icon:active{background:#2d333b}
 
-        .main-body { flex: 1; display: flex; flex-direction: column; padding: 6px; gap: 6px; overflow: hidden; justify-content: center; }
-        .status-bar { background: #222; border: 1px solid #333; color: #ffeb3b; font-size: 0.75rem; text-align: center; padding: 4px; border-radius: 4px; font-weight: bold; }
+  .main-body{flex:1;display:flex;flex-direction:column;padding:8px;gap:8px;overflow:hidden}
+  .status{background:#111820;border:1px solid var(--line);color:var(--warn);
+    font-size:.74rem;text-align:center;padding:6px;border-radius:6px;font-weight:700;flex-shrink:0}
+  .meta{display:flex;justify-content:space-between;font-size:.65rem;color:var(--dim);padding:0 2px;flex-shrink:0}
+  .stage{position:relative;flex:1;min-height:0;background:#000;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+  video{width:100%;height:100%;object-fit:contain;display:block}
+  .finish-line{position:absolute;top:0;bottom:0;width:2px;background:#ff3b30;box-shadow:0 0 6px #ff3b30;z-index:5}
+  .finish-line::after{content:"";position:absolute;top:0;bottom:0;left:-9px;width:20px}
+  #livePreview{width:100%;height:54px;background:#000;border:1px solid var(--line);border-radius:8px;display:block;flex-shrink:0}
 
-        .video-box { position: relative; width: 100%; flex: 1; max-height: 60vh; background: #000; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; border: 2px solid #333; }
-        video { width: 100%; height: 100%; object-fit: contain; }
-        .finish-line-overlay { position: absolute; top: 0; bottom: 0; width: 2px; background-color: red; z-index: 10; }
+  .controls{background:var(--panel);padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn-lg{padding:14px;border:none;border-radius:10px;font-weight:800;font-size:1rem;cursor:pointer;color:#fff}
+  .btn-lg:disabled{opacity:.4}
+  .btn-go{background:var(--go)} .btn-stop{background:var(--stop)}
+  .sliders{display:flex;flex-direction:column;gap:8px}
+  .sl{display:flex;align-items:center;gap:10px;font-size:.72rem;color:var(--dim)}
+  .sl label{width:74px;flex-shrink:0;font-weight:700}
+  .sl .val{width:62px;text-align:right;color:var(--ink);font-weight:700}
+  input[type=range]{flex:1;accent-color:var(--accent);height:22px;min-width:0}
 
-        .main-controls { background: #1e1e1e; padding: 10px 12px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-        .start-stop-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn-large { padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; }
-        .btn-start { background-color: #28a745; color: white; }
-        .btn-stop { background-color: #dc3545; color: white; }
+  /* ---------- SKRIN SEMAKAN ---------- */
+  #reviewScreen{display:none;flex-direction:column;position:absolute;inset:0;z-index:100;background:var(--bg)}
+  .rev-head{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 12px;
+    display:flex;justify-content:space-between;align-items:center;gap:10px;flex-shrink:0}
+  .rev-head .lbl{font-size:.68rem;color:var(--dim);font-weight:700;letter-spacing:.1em}
+  .badge{font-size:1.5rem;font-weight:800;color:var(--warn);background:#000;padding:3px 12px;
+    border-radius:6px;border:1px solid rgba(255,213,74,.5)}
+  .rev-body{flex:1;display:flex;flex-direction:column;padding:8px;gap:8px;overflow:hidden;min-height:0}
+  .scroller{flex:1;min-height:0;background:#000;border:1px solid var(--accent);border-radius:10px;
+    overflow-x:auto;overflow-y:hidden;position:relative;-webkit-overflow-scrolling:touch}
+  .wrap{position:relative;height:100%;display:inline-block}
+  #photoCanvas{display:block;height:100%}
+  #marker{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--warn);z-index:3;pointer-events:none}
+  #marker::before{content:attr(data-t);position:absolute;top:6px;left:6px;background:var(--warn);color:#000;
+    font:800 11px ui-monospace,monospace;padding:2px 6px;border-radius:4px;white-space:nowrap}
+  .rev-ctrl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+    display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+  .nudge{display:flex;gap:6px}
+  .nudge button{flex:1;background:#21262d;border:1px solid var(--line);color:var(--ink);
+    padding:8px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer}
+  .rev-actions{padding:10px 8px calc(10px + env(safe-area-inset-bottom));background:var(--panel);
+    border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex-shrink:0}
+  .btn-act{padding:13px 4px;border:none;border-radius:8px;font-weight:800;font-size:.82rem;color:#fff;cursor:pointer}
+  .b-back{background:#484f58} .b-del{background:var(--stop)} .b-save{background:var(--go)}
 
-        .slider-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.75rem; color: #ccc; }
-        .slider-group { display: flex; align-items: center; gap: 6px; flex: 1; }
-        input[type="range"] { width: 100%; accent-color: #00ffcc; height: 18px; }
-
-        /* 2. SKRIN SEMAK GAMBAR SLICE (REVIEW PAGE) */
-        #reviewScreen { display: none; flex-direction: column; height: 100%; width: 100%; background: #121212; position: absolute; top: 0; left: 0; z-index: 100; }
-        .review-header { background: #1e1e1e; padding: 10px 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; height: 55px; flex-shrink: 0; }
-        .review-title { font-size: 0.85rem; color: #aaa; }
-        .time-badge { font-size: 1.3rem; font-family: monospace; font-weight: bold; color: #ffeb3b; background: #000; padding: 3px 10px; border-radius: 4px; border: 1px solid #ffeb3b; }
-
-        .review-body { flex: 1; display: flex; flex-direction: column; padding: 8px; gap: 8px; overflow: hidden; }
-        .canvas-container { flex: 1; width: 100%; background: #000; border: 1.5px solid #00ffcc; border-radius: 8px; overflow-x: auto; overflow-y: hidden; position: relative; }
-        canvas { display: block; height: 100%; background: #111; }
-
-        .marker-control-box { background: #1e1e1e; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; border: 1px solid #333; }
-        .marker-control-label { font-size: 0.8rem; color: #ffeb3b; font-weight: bold; display: flex; justify-content: space-between; }
-
-        .review-actions { padding: 10px 8px; background: #1e1e1e; border-top: 1px solid #333; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; flex-shrink: 0; }
-        .btn-action { padding: 12px 4px; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; text-align: center; }
-        .btn-back { background-color: #6c757d; color: white; }
-        .btn-delete { background-color: #dc3545; color: white; }
-        .btn-save-final { background-color: #28a745; color: white; }
-
-        /* 3. MODAL SETTING */
-        #settingModal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; padding: 15px; }
-        .setting-box { background: #1e1e1e; border: 1px solid #444; border-radius: 12px; width: 100%; max-width: 480px; padding: 16px; display: flex; flex-direction: column; gap: 14px; max-height: 90vh; overflow-y: auto; }
-        .setting-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; }
-        .setting-title { font-size: 1.1rem; font-weight: bold; color: #00ffcc; }
-
-        .setting-item { display: flex; flex-direction: column; gap: 6px; }
-        .setting-label { font-size: 0.85rem; color: #ccc; font-weight: bold; }
-        select, input[type="text"] { width: 100%; padding: 8px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 0.85rem; }
-
-        .mic-meter-box { background: #111; border: 1px solid #333; border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
-        .mic-meter-bar-bg { width: 100%; height: 12px; background: #222; border-radius: 6px; overflow: hidden; position: relative; }
-        .mic-meter-bar-fill { height: 100%; width: 0%; background: #28a745; transition: width 0.05s linear; }
-        .mic-threshold-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ffeb3b; z-index: 2; }
-
-        .btn-close-setting { background: #00ffcc; color: #000; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; margin-top: 6px; }
-    </style>
+  /* ---------- TETAPAN ---------- */
+  #settingModal{display:none;position:absolute;inset:0;background:rgba(0,0,0,.88);z-index:200;
+    justify-content:center;align-items:center;padding:14px}
+  .sbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:480px;
+    padding:16px;display:flex;flex-direction:column;gap:14px;max-height:88dvh;overflow-y:auto}
+  .shead{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px}
+  .stitle{font-size:1rem;font-weight:800;color:var(--accent);letter-spacing:.04em}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field>.lab{font-size:.78rem;color:var(--dim);font-weight:700}
+  select,input[type=text]{width:100%;padding:10px;background:#0b0f14;border:1px solid var(--line);
+    color:var(--ink);border-radius:8px;font-size:.85rem}
+  .hint{font-size:.68rem;color:var(--dim);line-height:1.45}
+  .meter{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px}
+  .bar{position:relative;height:14px;background:#1c222b;border-radius:7px;overflow:hidden}
+  .fill{height:100%;width:0%;background:var(--go);transition:width .05s linear}
+  .thr{position:absolute;top:0;bottom:0;width:2px;background:var(--warn);z-index:2}
+  .btn-primary{background:var(--accent);color:#00120f;padding:12px;border:none;border-radius:8px;
+    font-weight:800;cursor:pointer;font-size:.9rem}
+  .banner{display:none;background:#3d1d1d;border:1px solid #7d2b2b;color:#ffb3b3;
+    font-size:.75rem;padding:8px 10px;border-radius:8px;line-height:1.45}
+</style>
 </head>
 <body>
 
-    <!-- 1. SKRIN UTAMA (MAIN PAGE) -->
-    <div id="mainScreen">
-        <header>
-            <div class="header-left">
-                <button class="btn-icon" id="btnOpenSetting">⚙️ SETTING</button>
-                <div class="app-title">PHOTO FINISH</div>
-            </div>
-            <div class="timer-display" id="timerDisplay">00:00.000</div>
-        </header>
+<!-- ================= SKRIN UTAMA ================= -->
+<div id="mainScreen">
+  <header>
+    <button class="btn-icon" id="btnSetting">⚙ TETAPAN</button>
+    <div class="brand">PHOTO FINISH</div>
+    <div class="clock mono" id="clock">0.000</div>
+  </header>
 
-        <div class="main-body">
-            <div class="status-bar" id="statusBar">Mod Mula: Manual (Tekan 'MULA')</div>
-            <div class="video-box">
-                <video id="webcam" autoplay playsinline muted></video>
-                <div class="finish-line-overlay" id="finishLine" style="left: 50%;"></div>
-            </div>
-        </div>
+  <div class="main-body">
+    <div class="banner" id="banner"></div>
+    <div class="status" id="status">Mod manual — tekan MULA untuk merakam.</div>
+    <div class="stage">
+      <video id="webcam" autoplay playsinline muted></video>
+      <div class="finish-line" id="finishLine" style="left:50%"></div>
+    </div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span id="metaFps">FPS: —</span></div>
+    <canvas id="livePreview" height="54"></canvas>
+  </div>
 
-        <div class="main-controls">
-            <div class="start-stop-row">
-                <button class="btn-large btn-start" id="btnStart">▶ MULA</button>
-                <button class="btn-large btn-stop" id="btnStop">⏹ STOP</button>
-            </div>
-            <div class="slider-row">
-                <div class="slider-group">
-                    <label>Garisan:</label>
-                    <input type="range" id="slitPosSlider" min="0" max="100" value="50">
-                </div>
-                <div class="slider-group" style="max-width: 110px;">
-                    <label>Slice:</label>
-                    <input type="range" id="sliceWidthSlider" min="1" max="5" value="2">
-                    <span id="sliceWidthVal">2px</span>
-                </div>
-            </div>
-        </div>
+  <div class="controls">
+    <div class="row2">
+      <button class="btn-lg btn-go" id="btnStart">▶ MULA</button>
+      <button class="btn-lg btn-stop" id="btnStop">⏹ BERHENTI</button>
+    </div>
+    <div class="sliders">
+      <div class="sl"><label>Garisan</label><input type="range" id="slSlit" min="0" max="100" value="50"><span class="val mono" id="vSlit">50%</span></div>
+      <div class="sl"><label>Lebar imbas</label><input type="range" id="slSrc" min="1" max="6" value="2"><span class="val mono" id="vSrc">2 px</span></div>
+      <div class="sl"><label>Kelajuan</label><input type="range" id="slSpeed" min="60" max="600" step="20" value="240"><span class="val mono" id="vSpeed">240</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SKRIN SEMAKAN ================= -->
+<div id="reviewScreen">
+  <div class="rev-head">
+    <div class="lbl">MASA DI GARISAN</div>
+    <div class="badge mono" id="badge">0.000</div>
+  </div>
+  <div class="rev-body">
+    <div class="scroller" id="scroller">
+      <div class="wrap" id="wrap">
+        <canvas id="photoCanvas"></canvas>
+        <div id="marker" data-t="0.000"></div>
+      </div>
+    </div>
+    <div class="rev-ctrl">
+      <div class="sl"><label>Garisan masa</label><input type="range" id="slMarker" min="0" max="100" value="0"><span class="val mono" id="vMarker">0%</span></div>
+      <div class="sl"><label>Zum</label><input type="range" id="slZoom" min="50" max="600" step="10" value="100"><span class="val mono" id="vZoom">100%</span></div>
+      <div class="nudge">
+        <button id="nudgeL2">⏪ −10 px</button>
+        <button id="nudgeL1">◀ −1 px</button>
+        <button id="nudgeR1">+1 px ▶</button>
+        <button id="nudgeR2">+10 px ⏩</button>
+      </div>
+    </div>
+  </div>
+  <div class="rev-actions">
+    <button class="btn-act b-back" id="btnBack">⬅ KEMBALI</button>
+    <button class="btn-act b-del" id="btnDelete">🗑 BUANG</button>
+    <button class="btn-act b-save" id="btnSave">💾 SIMPAN PNG</button>
+  </div>
+</div>
+
+<!-- ================= TETAPAN ================= -->
+<div id="settingModal">
+  <div class="sbox">
+    <div class="shead">
+      <div class="stitle">TETAPAN SISTEM</div>
+      <button class="btn-icon" id="btnCloseSet">✖</button>
     </div>
 
-    <!-- 2. SKRIN SEMAK GAMBAR SLICE (REVIEW PAGE) -->
-    <div id="reviewScreen">
-        <div class="review-header">
-            <div class="review-title">MASA PELARI:</div>
-            <div class="time-badge" id="inspectTimeBadge">00:00.000</div>
-        </div>
-
-        <div class="review-body">
-            <div class="canvas-container" id="canvasScroll">
-                <canvas id="photoCanvas" height="400" width="3000"></canvas>
-            </div>
-
-            <div class="marker-control-box">
-                <div class="marker-control-label">
-                    <span>↔ Gerakkan Garisan Masa Pelari:</span>
-                    <span id="markerPosPercent">0%</span>
-                </div>
-                <input type="range" id="markerSlider" min="0" max="1000" value="0">
-            </div>
-        </div>
-
-        <div class="review-actions">
-            <button class="btn-action btn-back" id="btnBack">⬅ BACK</button>
-            <button class="btn-action btn-delete" id="btnDelete">🗑 BUANG</button>
-            <button class="btn-action btn-save-final" id="btnSaveFinal">💾 SIMPAN</button>
-        </div>
+    <div class="field">
+      <div class="lab">Nama acara (untuk label & nama fail)</div>
+      <input type="text" id="inEvent" placeholder="cth: MSSD Muar — 100m L12 Akhir">
     </div>
 
-    <!-- 3. MODAL SETTING -->
-    <div id="settingModal">
-        <div class="setting-box">
-            <div class="setting-header">
-                <div class="setting-title">⚙️ TETAPAN SISTEM</div>
-                <button class="btn-icon" id="btnCloseSetting">✖</button>
-            </div>
-
-            <!-- Pilih Kamera -->
-            <div class="setting-item">
-                <div class="setting-label">📹 Pilih Kamera (Laptop / Phone):</div>
-                <select id="cameraSelect">
-                    <option value="">Mengesan kamera...</option>
-                </select>
-            </div>
-
-            <!-- Pilih Lensa (Normal / Wide Angle) -->
-            <div class="setting-item">
-                <div class="setting-label">🔍 Mod Lensa Kamera:</div>
-                <select id="lensSelect">
-                    <option value="normal">Normal Lens (Default)</option>
-                    <option value="wide">Wide Angle (Sudut Luas / Ultra-Wide)</option>
-                </select>
-            </div>
-
-            <!-- Mod Trigger Mula (Manual vs Sound Trigger) -->
-            <div class="setting-item">
-                <div class="setting-label">⏱ Mod Mula Masa (Start Trigger):</div>
-                <select id="triggerModeSelect">
-                    <option value="manual">Manual (Tekan Butang 'MULA')</option>
-                    <option value="sound">Trigger Bunyi (Pistol / Bunyi Nyaring)</option>
-                </select>
-            </div>
-
-            <!-- Tetapan Sensitiviti Bunyi -->
-            <div class="setting-item" id="soundSettingGroup" style="display: none;">
-                <div class="setting-label">🎤 Sensitiviti Trigger Bunyi:</div>
-                <div class="slider-group">
-                    <input type="range" id="soundThresholdSlider" min="10" max="95" value="50">
-                    <span id="soundThresholdVal">50%</span>
-                </div>
-                
-                <div class="mic-meter-box">
-                    <div style="font-size: 0.7rem; color: #aaa;">Tahap Bunyi Semasa (Uji Bunyi Tepuk/Tembakan):</div>
-                    <div class="mic-meter-bar-bg">
-                        <div class="mic-meter-bar-fill" id="micMeterFill"></div>
-                        <div class="mic-threshold-line" id="micThresholdLine" style="left: 50%;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <button class="btn-close-setting" id="btnSaveSetting">SIMPAN & TUTUP</button>
-        </div>
+    <div class="field">
+      <div class="lab">Kamera</div>
+      <select id="selCam"><option value="">Mengesan kamera…</option></select>
+      <div class="hint">Pada telefon, lensa ultra-wide biasanya muncul sebagai kamera berasingan.</div>
     </div>
+
+    <div class="field">
+      <div class="lab">Zum optik / digital</div>
+      <select id="selLens">
+        <option value="normal">Normal</option>
+        <option value="wide">Paling luas (zoom minimum)</option>
+        <option value="tele">Rapat (zoom maksimum)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <div class="lab">Arah pelari</div>
+      <select id="selDir">
+        <option value="left_to_right">Kiri ➔ Kanan</option>
+        <option value="right_to_left">Kanan ➔ Kiri</option>
+      </select>
+      <div class="hint">Tetapan ini membetulkan orientasi imej jalur supaya pelari tidak kelihatan terbalik.</div>
+    </div>
+
+    <div class="field">
+      <div class="lab">Mod mula masa</div>
+      <select id="selTrig">
+        <option value="manual">Manual — tekan MULA</option>
+        <option value="sound">Bunyi — pistol / tepukan</option>
+      </select>
+    </div>
+
+    <div class="field" id="soundGroup" style="display:none">
+      <div class="lab">Ambang bunyi</div>
+      <div class="sl"><input type="range" id="slThr" min="5" max="95" value="45"><span class="val mono" id="vThr">45%</span></div>
+      <div class="meter">
+        <div class="hint">Aras bunyi semasa — uji dengan tepukan.</div>
+        <div class="bar"><div class="fill" id="micFill"></div><div class="thr" id="micThr" style="left:45%"></div></div>
+      </div>
+      <div class="hint">Selepas menekan SEDIA, sistem abai bunyi selama 0.5 saat supaya bunyi tekanan butang tidak mencetuskan masa.</div>
+    </div>
+
+    <button class="btn-primary" id="btnApply">SIMPAN & TUTUP</button>
+  </div>
+</div>
 
 <script>
-    // Skrin & Modal
-    const mainScreen = document.getElementById('mainScreen');
-    const reviewScreen = document.getElementById('reviewScreen');
-    const settingModal = document.getElementById('settingModal');
+'use strict';
 
-    // Elemen Main Screen
-    const video = document.getElementById('webcam');
-    const finishLine = document.getElementById('finishLine');
-    const timerDisplay = document.getElementById('timerDisplay');
-    const statusBar = document.getElementById('statusBar');
+/* ============================================================
+   Photo Finish SKPR — v2
+   Prinsip: paksi mendatar imej = MASA sebenar (bukan bilangan frame).
+   Masa pada mana-mana piksel x  =  x / kelajuanImbas (piksel sesaat).
+   ============================================================ */
 
-    // Elemen Canvas & Review
-    const photoCanvas = document.getElementById('photoCanvas');
-    const ctx = photoCanvas.getContext('2d');
-    const canvasScroll = document.getElementById('canvasScroll');
-    const inspectTimeBadge = document.getElementById('inspectTimeBadge');
+const $ = id => document.getElementById(id);
 
-    // Controls Utama
-    const btnStart = document.getElementById('btnStart');
-    const btnStop = document.getElementById('btnStop');
-    const btnOpenSetting = document.getElementById('btnOpenSetting');
-    const btnCloseSetting = document.getElementById('btnCloseSetting');
-    const btnSaveSetting = document.getElementById('btnSaveSetting');
+const S = {
+  deviceId : '',
+  lensMode : 'normal',
+  direction: 'left_to_right',
+  trigger  : 'manual',
+  threshold: 45,
+  slitPct  : 0.50,   // kedudukan garisan penamat pada frame video
+  srcWidth : 2,      // lebar jalur sumber (px pada video)
+  pxPerSec : 240,    // resolusi masa imej jalur
+  eventName: '',
+  stripH   : 360,    // tinggi imej jalur
+  maxW     : 20000   // had lebar (≈83 s pada 240 px/s)
+};
 
-    const btnBack = document.getElementById('btnBack');
-    const btnDelete = document.getElementById('btnDelete');
-    const btnSaveFinal = document.getElementById('btnSaveFinal');
+let mode = 'idle';            // idle | armed | running | review
+let startTime = 0;            // performance.now() ketika masa 0
+let lastX = 0;                // lebar jalur yang sudah dirakam
+let strip = null, sctx = null;// kanvas jalur mentah (luar skrin)
+let stream = null, videoTrack = null;
+let markerX = 0, zoom = 1, viewScale = 1;
+let stopReason = '';
 
-    const slitPosSlider = document.getElementById('slitPosSlider');
-    const sliceWidthSlider = document.getElementById('sliceWidthSlider');
-    const sliceWidthVal = document.getElementById('sliceWidthVal');
-    const markerSlider = document.getElementById('markerSlider');
-    const markerPosPercent = document.getElementById('markerPosPercent');
+const video   = $('webcam');
+const preview = $('livePreview'), pctx = preview.getContext('2d', {alpha:false});
+const photo   = $('photoCanvas');
+const scroller= $('scroller'), wrap = $('wrap'), marker = $('marker');
 
-    // Elemen Setting
-    const cameraSelect = document.getElementById('cameraSelect');
-    const lensSelect = document.getElementById('lensSelect');
-    const triggerModeSelect = document.getElementById('triggerModeSelect');
-    const soundSettingGroup = document.getElementById('soundSettingGroup');
-    const soundThresholdSlider = document.getElementById('soundThresholdSlider');
-    const soundThresholdVal = document.getElementById('soundThresholdVal');
-    const micMeterFill = document.getElementById('micMeterFill');
-    const micThresholdLine = document.getElementById('micThresholdLine');
+/* ---------------- Utiliti ---------------- */
+function fmt(ms){
+  if(!isFinite(ms) || ms < 0) ms = 0;
+  const s = ms/1000;
+  return s < 60 ? s.toFixed(3)
+                : Math.floor(s/60) + ':' + (s%60 < 10 ? '0' : '') + (s%60).toFixed(3);
+}
+function setStatus(text, color){ $('status').textContent = text; $('status').style.color = color || 'var(--warn)'; }
+function showBanner(text){ const b = $('banner'); b.textContent = text; b.style.display = 'block'; }
 
-    // Tetapan Dalaman
-    let isScanning = false;
-    let startTime = null;
-    let timerInterval = null;
-    let currentX = 0;
-    let sliceWidth = parseInt(sliceWidthSlider.value);
-    let slitPercent = 0.5;
-
-    let selectedDeviceId = "";
-    let selectedLensMode = "normal";
-    let triggerMode = "manual";
-    let soundThreshold = 50;
-    let isWaitingForSound = false;
-
-    let timeAtPixel = [];
-    let rawCanvasData = null;
-    let currentStream = null;
-
-    // Web Audio API
-    let audioCtx = null;
-    let analyser = null;
-    let micStream = null;
-    let isMicActive = false;
-
-    // 1. PENGURUSAN KAMERA (AUTO DETECT + SOKONGAN PELBAGAI KAMERA)
-    async function getCameraDevices() {
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(d => d.kind === 'videoinput');
-            
-            cameraSelect.innerHTML = "";
-            videoDevices.forEach((device, index) => {
-                const option = document.createElement('option');
-                option.value = device.deviceId;
-                option.text = device.label || `Kamera ${index + 1}`;
-                cameraSelect.appendChild(option);
-            });
-
-            if (videoDevices.length > 0 && !selectedDeviceId) {
-                const backCam = videoDevices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
-                selectedDeviceId = backCam ? backCam.deviceId : videoDevices[0].deviceId;
-                cameraSelect.value = selectedDeviceId;
-            }
-        } catch (err) {
-            console.error("Gagal mengesan peranti kamera:", err);
-        }
-    }
-
-    async function startCamera() {
-        if (currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
-        }
-
-        const constraints = {
-            video: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                frameRate: { ideal: 60 }
-            },
-            audio: false
-        };
-
-        if (selectedDeviceId) {
-            constraints.video.deviceId = { exact: selectedDeviceId };
-        } else {
-            constraints.video.facingMode = "environment";
-        }
-
-        if (selectedLensMode === "wide") {
-            constraints.video.advanced = [{ zoom: 0.5 }];
-        }
-
-        try {
-            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-            video.srcObject = currentStream;
-            video.onloadedmetadata = () => {
-                photoCanvas.height = video.videoHeight || 480;
-                clearCanvas();
-            };
-            await getCameraDevices();
-        } catch (err) {
-            console.warn("Mencuba tetapan fallback kamera...", err);
-            try {
-                currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                video.srcObject = currentStream;
-            } catch (fallbackErr) {
-                alert("Gagal mengalirkan kamera: " + fallbackErr.message);
-            }
-        }
-    }
-
-    // 2. TETAPAN SETTING MODAL
-    btnOpenSetting.addEventListener('click', () => {
-        settingModal.style.display = 'flex';
-        initMicForMeter();
+/* ---------------- Kamera ---------------- */
+async function listCameras(){
+  try{
+    const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    const sel = $('selCam');
+    sel.innerHTML = '';
+    devs.forEach((d,i) => {
+      const o = document.createElement('option');
+      o.value = d.deviceId;
+      o.textContent = d.label || ('Kamera ' + (i+1));
+      sel.appendChild(o);
     });
-
-    btnCloseSetting.addEventListener('click', closeSettingModal);
-    btnSaveSetting.addEventListener('click', closeSettingModal);
-
-    function closeSettingModal() {
-        settingModal.style.display = 'none';
-        
-        if (cameraSelect.value) {
-            selectedDeviceId = cameraSelect.value;
-        }
-        selectedLensMode = lensSelect.value;
-        triggerMode = triggerModeSelect.value;
-
-        startCamera();
-
-        if (triggerMode === 'sound') {
-            statusBar.innerText = "Mod Mula: Trigger Bunyi (Tekan 'SEDIA' & Tembak Pistol)";
-            btnStart.innerText = "🎤 SEDIA (ARM)";
-        } else {
-            statusBar.innerText = "Mod Mula: Manual (Tekan 'MULA')";
-            btnStart.innerText = "▶ MULA";
-        }
+    if(devs.length && !S.deviceId){
+      const back = devs.find(d => /back|rear|environment/i.test(d.label));
+      S.deviceId = (back || devs[0]).deviceId;
     }
+    if(S.deviceId) sel.value = S.deviceId;
+  }catch(e){ console.warn('enumerateDevices', e); }
+}
 
-    triggerModeSelect.addEventListener('change', (e) => {
-        if (e.target.value === 'sound') {
-            soundSettingGroup.style.display = 'flex';
-            initMicForMeter();
-        } else {
-            soundSettingGroup.style.display = 'none';
-        }
+async function startCamera(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    showBanner('Pelayar ini tidak menyokong akses kamera. Guna Chrome atau Safari terkini.');
+    return;
+  }
+  if(!window.isSecureContext){
+    showBanner('Kamera hanya berfungsi melalui HTTPS atau localhost. Buka fail ini melalui pelayan tempatan atau GitHub Pages.');
+  }
+  if(stream) stream.getTracks().forEach(t => t.stop());
+
+  const base = { width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:120, min:30} };
+  const want = S.deviceId ? Object.assign({deviceId:{exact:S.deviceId}}, base)
+                          : Object.assign({facingMode:'environment'}, base);
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video: want, audio: false });
+  }catch(e){
+    try{ stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false }); }
+    catch(e2){ showBanner('Kamera tidak dapat dibuka: ' + e2.message); return; }
+  }
+  video.srcObject = stream;
+  videoTrack = stream.getVideoTracks()[0];
+  await applyZoomCapability();
+  await listCameras();
+
+  video.onloadedmetadata = () => {
+    const st = videoTrack.getSettings ? videoTrack.getSettings() : {};
+    $('metaCam').textContent = 'Kamera: ' + (video.videoWidth || '?') + '×' + (video.videoHeight || '?') +
+                               (st.frameRate ? ' @' + Math.round(st.frameRate) + 'fps' : '');
+    resetStrip();
+  };
+}
+
+async function applyZoomCapability(){
+  if(!videoTrack || !videoTrack.getCapabilities) return;
+  try{
+    const cap = videoTrack.getCapabilities();
+    if(!cap.zoom) return;
+    let z = cap.zoom.min;
+    if(S.lensMode === 'tele') z = cap.zoom.max;
+    else if(S.lensMode === 'normal') z = Math.min(Math.max(1, cap.zoom.min), cap.zoom.max);
+    await videoTrack.applyConstraints({ advanced:[{ zoom:z }] });
+  }catch(e){ /* zum tidak disokong — abaikan */ }
+}
+
+/* ---------------- Kanvas jalur ---------------- */
+function resetStrip(){
+  S.stripH = Math.min(video.videoHeight || 360, 400) || 360;
+  strip = document.createElement('canvas');
+  strip.width = 2000; strip.height = S.stripH;
+  sctx = strip.getContext('2d', {alpha:false});
+  sctx.imageSmoothingEnabled = false;
+  sctx.fillStyle = '#000'; sctx.fillRect(0, 0, strip.width, strip.height);
+  lastX = 0;
+  pctx.fillStyle = '#000'; pctx.fillRect(0, 0, preview.width, preview.height);
+}
+
+function ensureWidth(x){
+  if(x < strip.width) return true;
+  if(strip.width >= S.maxW) return false;
+  const nw = Math.min(S.maxW, strip.width * 2);
+  const tmp = document.createElement('canvas');
+  tmp.width = nw; tmp.height = strip.height;
+  const tc = tmp.getContext('2d', {alpha:false});
+  tc.imageSmoothingEnabled = false;
+  tc.fillStyle = '#000'; tc.fillRect(0, 0, nw, strip.height);
+  tc.drawImage(strip, 0, 0);
+  strip = tmp; sctx = tc;
+  return true;
+}
+
+/* ---------------- Enjin rakaman ---------------- */
+function captureFrame(now){
+  if(mode !== 'running' || !strip) return;
+  if(video.readyState < 2 || !video.videoWidth) return;
+
+  const elapsed = now - startTime;
+  if(elapsed < 0) return;
+
+  const x = Math.round(elapsed * S.pxPerSec / 1000);
+  if(x <= lastX) return;                 // frame lebih laju daripada resolusi masa — langkau
+  if(!ensureWidth(x)){ stopCapture('had'); return; }
+
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const sw = Math.max(1, Math.min(S.srcWidth, vw));
+  const sx = Math.min(vw - sw, Math.max(0, Math.round(vw * S.slitPct - sw/2)));
+
+  sctx.drawImage(video, sx, 0, sw, vh, lastX, 0, x - lastX, strip.height);
+  lastX = x;
+}
+
+/* Gelung frame: guna requestVideoFrameCallback bila ada (satu panggilan
+   setiap frame kamera sebenar), jika tidak jatuh balik ke rAF. */
+let fpsCount = 0, fpsMark = 0;
+function pump(){
+  const tick = (now) => {
+    captureFrame(now);
+    fpsCount++;
+    if(now - fpsMark > 1000){
+      $('metaFps').textContent = 'FPS: ' + fpsCount + (mode === 'running' && fpsCount * S.srcWidth < S.pxPerSec/2 ? ' ⚠ rendah' : '');
+      fpsCount = 0; fpsMark = now;
+    }
+    pump();
+  };
+  if(video.requestVideoFrameCallback) video.requestVideoFrameCallback((now) => tick(now));
+  else requestAnimationFrame(tick);
+}
+
+/* Jam & pratonton jalur langsung */
+function uiLoop(){
+  if(mode === 'running'){
+    $('clock').textContent = fmt(performance.now() - startTime);
+    if(lastX > 0){
+      const shown = Math.min(lastX, 900);
+      pctx.fillStyle = '#000'; pctx.fillRect(0, 0, preview.width, preview.height);
+      pctx.drawImage(strip, lastX - shown, 0, shown, strip.height,
+                     0, 0, preview.width, preview.height);
+    }
+  }
+  requestAnimationFrame(uiLoop);
+}
+
+/* ---------------- Mula / Berhenti ---------------- */
+function beginCapture(t0){
+  mode = 'running';
+  startTime = t0;
+  resetStrip();
+  $('clock').textContent = '0.000';
+  setStatus('▶ Merakam… tekan BERHENTI selepas pelari melintas.', 'var(--accent)');
+  requestWakeLock();
+}
+
+function stopCapture(reason){
+  const wasRunning = (mode === 'running');
+  mode = 'idle';
+  armedAt = 0;
+  stopReason = reason || '';
+  if(!wasRunning || lastX < 2){
+    setStatus(reason === 'had' ? 'Had rakaman dicapai.' : 'Belum ada rakaman. Tekan MULA dahulu.');
+    return false;
+  }
+  buildReview();
+  return true;
+}
+
+$('btnStart').addEventListener('click', () => {
+  if(mode === 'running') return;
+  if(S.trigger === 'sound'){
+    mode = 'armed'; armedAt = performance.now();
+    $('clock').textContent = '0.000';
+    setStatus('🎤 SEDIA — menunggu bunyi pelepas…', 'var(--warn)');
+    initMic();
+  }else{
+    beginCapture(performance.now());
+  }
+});
+
+$('btnStop').addEventListener('click', () => {
+  if(mode === 'armed'){ mode = 'idle'; setStatus('Dibatalkan. Tekan SEDIA semula.'); return; }
+  stopCapture('manual');
+});
+
+/* Papan kekunci: Space = mula/berhenti, Esc = kembali */
+addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if(e.code === 'Space'){ e.preventDefault(); (mode === 'running' || mode === 'armed') ? $('btnStop').click() : $('btnStart').click(); }
+  if(e.key === 'Escape' && $('reviewScreen').style.display === 'flex') $('btnBack').click();
+  if($('reviewScreen').style.display === 'flex'){
+    if(e.key === 'ArrowLeft'){ e.preventDefault(); setMarker(markerX - (e.shiftKey ? 10 : 1)); }
+    if(e.key === 'ArrowRight'){ e.preventDefault(); setMarker(markerX + (e.shiftKey ? 10 : 1)); }
+  }
+});
+
+/* ---------------- Trigger bunyi ---------------- */
+let audioCtx = null, analyser = null, micStream = null, micTimer = null;
+let armedAt = 0, tdBuf = null, lastMeter = 0;
+
+async function initMic(){
+  if(analyser) return;
+  try{
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
     });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') await audioCtx.resume();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    audioCtx.createMediaStreamSource(micStream).connect(analyser);
+    tdBuf = new Uint8Array(analyser.fftSize);
+    micTimer = setInterval(pollMic, 4);   // ~4 ms — jauh lebih pantas daripada rAF
+  }catch(e){
+    setStatus('Mikrofon tidak dapat diakses. Guna mod manual.', '#ff6b6b');
+  }
+}
 
-    soundThresholdSlider.addEventListener('input', (e) => {
-        soundThreshold = parseInt(e.target.value);
-        soundThresholdVal.innerText = `${soundThreshold}%`;
-        micThresholdLine.style.left = `${soundThreshold}%`;
-    });
+function releaseMic(){
+  if(micTimer){ clearInterval(micTimer); micTimer = null; }
+  if(micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if(audioCtx){ audioCtx.close().catch(()=>{}); audioCtx = null; }
+  analyser = null;
+}
 
-    // 3. SOUND TRIGGER (WEB AUDIO API)
-    async function initMicForMeter() {
-        if (isMicActive) return;
-        try {
-            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 256;
-            
-            const source = audioCtx.createMediaStreamSource(micStream);
-            source.connect(analyser);
-            isMicActive = true;
-            listenMicLevel();
-        } catch (err) {
-            console.error("Mikrofon tidak dapat diakses untuk sound trigger:", err);
-        }
+function pollMic(){
+  if(!analyser) return;
+  analyser.getByteTimeDomainData(tdBuf);
+  let peak = 0;
+  for(let i = 0; i < tdBuf.length; i++){
+    const v = Math.abs(tdBuf[i] - 128);
+    if(v > peak) peak = v;
+  }
+  const level = Math.min(100, Math.round(peak / 128 * 100));
+
+  const now = performance.now();
+  if(now - lastMeter > 50){ $('micFill').style.width = level + '%'; lastMeter = now; }
+
+  if(mode === 'armed' && now - armedAt > 500 && level >= S.threshold){
+    beginCapture(now);
+    if(S.trigger !== 'sound') releaseMic();
+  }
+}
+
+/* ---------------- Skrin semakan ---------------- */
+function timeAtX(xDisp){
+  const W = photo.width;
+  const xt = (S.direction === 'right_to_left') ? (W - 1 - xDisp) : xDisp;
+  return xt / S.pxPerSec * 1000;
+}
+
+function buildReview(){
+  const W = Math.max(lastX, 2), H = strip.height;
+  photo.width = W; photo.height = H;
+  const c = photo.getContext('2d', {alpha:false});
+  c.imageSmoothingEnabled = false;
+  c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+
+  if(S.direction === 'right_to_left'){
+    c.save(); c.translate(W, 0); c.scale(-1, 1);
+    c.drawImage(strip, 0, 0, W, H, 0, 0, W, H);
+    c.restore();
+  }else{
+    c.drawImage(strip, 0, 0, W, H, 0, 0, W, H);
+  }
+  drawScale(c, W, H);
+
+  markerX = Math.floor(W / 2);
+  $('slMarker').min = 0; $('slMarker').max = W - 1; $('slMarker').value = markerX;
+  $('slZoom').value = 100; zoom = 1; $('vZoom').textContent = '100%';
+
+  $('mainScreen').style.display = 'none';
+  $('reviewScreen').style.display = 'flex';
+  requestAnimationFrame(() => { applyZoom(); setMarker(markerX, true); });
+}
+
+function drawScale(c, W, H){
+  const pps = S.pxPerSec;
+  const flip = S.direction === 'right_to_left';
+  c.font = '600 11px ui-monospace, monospace';
+  c.textAlign = 'center';
+  const total = W / pps;
+  for(let t = 0; t <= total; t += 0.1){
+    const xt = t * pps;
+    const x = flip ? (W - 1 - xt) : xt;
+    const major = Math.abs(t - Math.round(t)) < 1e-6;
+    c.strokeStyle = major ? 'rgba(255,80,80,.85)' : 'rgba(255,255,255,.28)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(x + .5, H - (major ? 24 : 10));
+    c.lineTo(x + .5, H);
+    c.stroke();
+    if(major && t > 0){
+      c.fillStyle = '#00e5c0';
+      c.fillText(Math.round(t) + 's', x, H - 28);
     }
+  }
+  if(S.eventName){
+    c.textAlign = 'left';
+    c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(0, 0, Math.min(W, 420), 20);
+    c.fillStyle = '#e6edf3';
+    c.fillText(S.eventName + '  •  ' + new Date().toLocaleString('ms-MY'), 6, 14);
+  }
+}
 
-    function listenMicLevel() {
-        if (!analyser) return;
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(dataArray);
+function applyZoom(){
+  const h = scroller.clientHeight || 200;
+  viewScale = (h / photo.height) * zoom;
+  photo.style.height = (photo.height * viewScale) + 'px';
+  photo.style.width  = (photo.width  * viewScale) + 'px';
+  wrap.style.width   = (photo.width  * viewScale) + 'px';
+  placeMarker(true);
+}
 
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
-        }
-        const average = sum / dataArray.length;
-        const volumePercent = Math.min(100, Math.round((average / 128) * 100));
+function setMarker(x, center){
+  markerX = Math.max(0, Math.min(photo.width - 1, Math.round(x)));
+  $('slMarker').value = markerX;
+  const t = timeAtX(markerX);
+  $('badge').textContent = fmt(t);
+  marker.dataset.t = fmt(t);
+  $('vMarker').textContent = Math.round(markerX / (photo.width - 1) * 100) + '%';
+  placeMarker(center);
+}
 
-        micMeterFill.style.width = `${volumePercent}%`;
+function placeMarker(center){
+  marker.style.left = (markerX * viewScale) + 'px';
+  if(center){
+    scroller.scrollLeft = markerX * viewScale - scroller.clientWidth / 2;
+  }else{
+    const px = markerX * viewScale - scroller.scrollLeft;
+    if(px < 40) scroller.scrollLeft = markerX * viewScale - 40;
+    if(px > scroller.clientWidth - 40) scroller.scrollLeft = markerX * viewScale - scroller.clientWidth + 40;
+  }
+}
 
-        if (isWaitingForSound && volumePercent >= soundThreshold) {
-            triggerStartBySound();
-        }
+$('slMarker').addEventListener('input', e => setMarker(+e.target.value, false));
+$('slZoom').addEventListener('input', e => {
+  zoom = +e.target.value / 100;
+  $('vZoom').textContent = e.target.value + '%';
+  applyZoom();
+});
+$('nudgeL2').addEventListener('click', () => setMarker(markerX - 10));
+$('nudgeL1').addEventListener('click', () => setMarker(markerX - 1));
+$('nudgeR1').addEventListener('click', () => setMarker(markerX + 1));
+$('nudgeR2').addEventListener('click', () => setMarker(markerX + 10));
 
-        requestAnimationFrame(listenMicLevel);
-    }
+/* Ketik atau seret terus pada imej */
+let dragging = false;
+function pointToX(ev){
+  const r = photo.getBoundingClientRect();
+  return (ev.clientX - r.left) / viewScale;
+}
+wrap.addEventListener('pointerdown', e => { dragging = true; wrap.setPointerCapture(e.pointerId); setMarker(pointToX(e), false); });
+wrap.addEventListener('pointermove', e => { if(dragging) setMarker(pointToX(e), false); });
+wrap.addEventListener('pointerup',   () => dragging = false);
+wrap.addEventListener('pointercancel', () => dragging = false);
 
-    function triggerStartBySound() {
-        isWaitingForSound = false;
-        statusBar.innerText = "💥 SOUND TRIGGER TERCETUS! LARIAN BERMULA!";
-        statusBar.style.color = "#28a745";
+addEventListener('resize', () => { if($('reviewScreen').style.display === 'flex') applyZoom(); });
 
-        isScanning = true;
-        startTime = performance.now();
-        currentX = 0;
-        timeAtPixel = [];
-        clearCanvas();
+$('btnBack').addEventListener('click', () => {
+  $('reviewScreen').style.display = 'none';
+  $('mainScreen').style.display = 'flex';
+  setStatus('Rakaman disimpan dalam memori. Tekan MULA untuk larian baharu.');
+});
 
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(updateTimerDisplay, 10);
-    }
+$('btnDelete').addEventListener('click', () => {
+  if(!confirm('Buang rakaman ini?')) return;
+  resetStrip();
+  $('clock').textContent = '0.000';
+  $('reviewScreen').style.display = 'none';
+  $('mainScreen').style.display = 'flex';
+  setStatus('Rakaman dibuang. Sedia untuk larian baharu.');
+});
 
-    // 4. KAWALAN BUTANG MULA & STOP
-    btnStart.addEventListener('click', () => {
-        if (triggerMode === 'sound') {
-            isWaitingForSound = true;
-            statusBar.innerText = "🎤 MENUNGGU BUNYI TEMBAKAN / PERLEPAS...";
-            statusBar.style.color = "#ffeb3b";
-            initMicForMeter();
-        } else {
-            isScanning = true;
-            startTime = performance.now();
-            currentX = 0;
-            timeAtPixel = [];
-            clearCanvas();
+$('btnSave').addEventListener('click', () => {
+  const ex = document.createElement('canvas');
+  ex.width = photo.width; ex.height = photo.height;
+  const c = ex.getContext('2d', {alpha:false});
+  c.drawImage(photo, 0, 0);
 
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(updateTimerDisplay, 10);
-            statusBar.innerText = "▶ LARIAN SEDANG BERLANGSUNG...";
-            statusBar.style.color = "#00ffcc";
-        }
-    });
+  // Garisan penanda + masa dibakar ke dalam imej
+  c.strokeStyle = '#ffd54a'; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(markerX + .5, 0); c.lineTo(markerX + .5, ex.height); c.stroke();
+  const label = fmt(timeAtX(markerX));
+  c.font = '800 16px ui-monospace, monospace';
+  const w = c.measureText(label).width + 14;
+  const bx = Math.min(Math.max(0, markerX - w/2), ex.width - w);
+  c.fillStyle = '#ffd54a'; c.fillRect(bx, 26, w, 24);
+  c.fillStyle = '#000'; c.textAlign = 'center';
+  c.fillText(label, bx + w/2, 43);
 
-    btnStop.addEventListener('click', () => {
-        isScanning = false;
-        isWaitingForSound = false;
-        if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-        }
+  const d = new Date();
+  const stamp = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0')
+              + '_' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0') + String(d.getSeconds()).padStart(2,'0');
+  const safe = (S.eventName || 'photofinish').replace(/[^\w\-]+/g, '_').slice(0, 40);
+  const a = document.createElement('a');
+  a.download = safe + '_' + stamp + '_' + label.replace(':','m') + 's.png';
+  a.href = ex.toDataURL('image/png');
+  a.click();
+});
 
-        if (currentX === 0) {
-            alert("Tiada gambar dirakam lagi. Tekan MULA/SEDIA dahulu.");
-            return;
-        }
+/* ---------------- Pelarasan pantas ---------------- */
+$('slSlit').addEventListener('input', e => {
+  S.slitPct = e.target.value / 100;
+  $('finishLine').style.left = e.target.value + '%';
+  $('vSlit').textContent = e.target.value + '%';
+});
+$('slSrc').addEventListener('input', e => {
+  S.srcWidth = +e.target.value;
+  $('vSrc').textContent = S.srcWidth + ' px';
+});
+$('slSpeed').addEventListener('input', e => {
+  if(mode === 'running') return;          // jangan tukar skala masa ketika merakam
+  S.pxPerSec = +e.target.value;
+  $('vSpeed').textContent = S.pxPerSec;
+});
 
-        saveCanvasState();
+/* ---------------- Modal tetapan ---------------- */
+$('btnSetting').addEventListener('click', () => {
+  $('settingModal').style.display = 'flex';
+  if($('selTrig').value === 'sound') initMic();
+});
+$('btnCloseSet').addEventListener('click', closeSettings);
+$('btnApply').addEventListener('click', closeSettings);
 
-        markerSlider.min = 0;
-        markerSlider.max = Math.max(currentX - 1, 0);
-        markerSlider.value = Math.floor(currentX / 2);
-        
-        updateMarkerPosition(parseInt(markerSlider.value));
+$('selTrig').addEventListener('change', e => {
+  $('soundGroup').style.display = e.target.value === 'sound' ? 'flex' : 'none';
+  if(e.target.value === 'sound') initMic();
+});
+$('slThr').addEventListener('input', e => {
+  S.threshold = +e.target.value;
+  $('vThr').textContent = S.threshold + '%';
+  $('micThr').style.left = S.threshold + '%';
+});
 
-        mainScreen.style.display = 'none';
-        reviewScreen.style.display = 'flex';
-    });
+async function closeSettings(){
+  $('settingModal').style.display = 'none';
+  const camChanged = $('selCam').value && $('selCam').value !== S.deviceId;
+  const lensChanged = $('selLens').value !== S.lensMode;
 
-    // 5. SKRIN SEMAKAN & PENANDA MASA
-    markerSlider.addEventListener('input', (e) => {
-        updateMarkerPosition(parseInt(e.target.value));
-    });
+  if($('selCam').value) S.deviceId = $('selCam').value;
+  S.lensMode  = $('selLens').value;
+  S.direction = $('selDir').value;
+  S.trigger   = $('selTrig').value;
+  S.eventName = $('inEvent').value.trim();
 
-    photoCanvas.addEventListener('click', (e) => {
-        const rect = photoCanvas.getBoundingClientRect();
-        const clickX = Math.floor(e.clientX - rect.left);
-        markerSlider.value = clickX;
-        updateMarkerPosition(clickX);
-    });
+  if(camChanged) await startCamera();
+  else if(lensChanged) await applyZoomCapability();
 
-    function updateMarkerPosition(x) {
-        if (x < 0 || x >= currentX) return;
+  if(S.trigger === 'sound'){
+    $('btnStart').textContent = '🎤 SEDIA';
+    setStatus('Mod bunyi — tekan SEDIA sebelum pelepas menembak.');
+    initMic();
+  }else{
+    $('btnStart').textContent = '▶ MULA';
+    setStatus('Mod manual — tekan MULA untuk merakam.');
+    releaseMic();
+  }
+}
 
-        restoreCanvasState();
+/* ---------------- Skrin kekal hidup ---------------- */
+let wakeLock = null;
+async function requestWakeLock(){
+  try{ if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && mode === 'running') requestWakeLock();
+});
 
-        ctx.strokeStyle = '#ffeb3b';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, photoCanvas.height);
-        ctx.stroke();
-
-        const recordedTime = timeAtPixel[x] || 0;
-        inspectTimeBadge.innerText = formatTime(recordedTime);
-        
-        const pct = Math.round((x / currentX) * 100);
-        markerPosPercent.innerText = `${pct}%`;
-
-        canvasScroll.scrollLeft = x - (canvasScroll.clientWidth / 2);
-    }
-
-    function saveCanvasState() {
-        rawCanvasData = ctx.getImageData(0, 0, photoCanvas.width, photoCanvas.height);
-    }
-
-    function restoreCanvasState() {
-        if (rawCanvasData) {
-            ctx.putImageData(rawCanvasData, 0, 0);
-        }
-    }
-
-    btnBack.addEventListener('click', () => {
-        reviewScreen.style.display = 'none';
-        mainScreen.style.display = 'flex';
-    });
-
-    btnDelete.addEventListener('click', () => {
-        clearCanvas();
-        timerDisplay.innerText = "00:00.000";
-        reviewScreen.style.display = 'none';
-        mainScreen.style.display = 'flex';
-    });
-
-    btnSaveFinal.addEventListener('click', () => {
-        const exportCanvas = document.createElement('canvas');
-        exportCanvas.width = Math.max(currentX, 100);
-        exportCanvas.height = photoCanvas.height;
-        const exportCtx = exportCanvas.getContext('2d');
-        
-        exportCtx.drawImage(photoCanvas, 0, 0, exportCanvas.width, exportCanvas.height, 0, 0, exportCanvas.width, exportCanvas.height);
-
-        const link = document.createElement('a');
-        link.download = `photo_finish_${Date.now()}.png`;
-        link.href = exportCanvas.toDataURL('image/png');
-        link.click();
-
-        clearCanvas();
-        timerDisplay.innerText = "00:00.000";
-        reviewScreen.style.display = 'none';
-        mainScreen.style.display = 'flex';
-    });
-
-    slitPosSlider.addEventListener('input', (e) => {
-        slitPercent = e.target.value / 100;
-        finishLine.style.left = `${e.target.value}%`;
-    });
-
-    sliceWidthSlider.addEventListener('input', (e) => {
-        sliceWidth = parseInt(e.target.value);
-        sliceWidthVal.innerText = `${sliceWidth}px`;
-    });
-
-    function updateTimerDisplay() {
-        if (!startTime) return;
-        const elapsed = performance.now() - startTime;
-        timerDisplay.innerText = formatTime(elapsed);
-    }
-
-    function formatTime(ms) {
-        if (ms < 0 || isNaN(ms)) return "00:00.000";
-        const totalSec = Math.floor(ms / 1000);
-        const min = Math.floor(totalSec / 60).toString().padStart(2, '0');
-        const sec = (totalSec % 60).toString().padStart(2, '0');
-        const milli = Math.floor(ms % 1000).toString().padStart(3, '0');
-        return `${min}:${sec}.${milli}`;
-    }
-
-    function clearCanvas() {
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
-        currentX = 0;
-        timeAtPixel = [];
-        rawCanvasData = null;
-    }
-
-    function processFrame() {
-        if (isScanning && video.readyState === video.HAVE_ENOUGH_DATA) {
-            const videoWidth = video.videoWidth;
-            const videoHeight = video.videoHeight;
-            const sourceX = Math.floor(videoWidth * slitPercent);
-
-            if (currentX + sliceWidth > photoCanvas.width) {
-                expandCanvas();
-            }
-
-            ctx.drawImage(
-                video,
-                sourceX, 0, sliceWidth, videoHeight,
-                currentX, 0, sliceWidth, photoCanvas.height
-            );
-
-            const currentTime = startTime ? (performance.now() - startTime) : 0;
-            for (let w = 0; w < sliceWidth; w++) {
-                timeAtPixel[currentX + w] = currentTime;
-            }
-
-            if (startTime) {
-                drawTimeMark(currentX, currentTime);
-            }
-
-            currentX += sliceWidth;
-        }
-
-        requestAnimationFrame(processFrame);
-    }
-
-    function expandCanvas() {
-        const oldData = ctx.getImageData(0, 0, photoCanvas.width, photoCanvas.height);
-        photoCanvas.width += 1000;
-        ctx.putImageData(oldData, 0, 0);
-    }
-
-    function drawTimeMark(x, elapsedMs) {
-        const sec = elapsedMs / 1000;
-        if (Math.floor(sec) > Math.floor((elapsedMs - 20) / 1000)) {
-            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x, photoCanvas.height - 25);
-            ctx.lineTo(x, photoCanvas.height);
-            ctx.stroke();
-
-            ctx.fillStyle = '#00ffcc';
-            ctx.font = '10px monospace';
-            ctx.fillText(`${Math.floor(sec)}s`, x + 2, photoCanvas.height - 5);
-        }
-    }
-
-    startCamera();
-    requestAnimationFrame(processFrame);
+/* ---------------- Mula ---------------- */
+function boot(){
+  preview.width = preview.clientWidth || 640;
+  $('vSpeed').textContent = S.pxPerSec;
+  startCamera();
+  pump();
+  uiLoop();
+}
+addEventListener('load', boot);
+addEventListener('pagehide', () => { releaseMic(); if(stream) stream.getTracks().forEach(t => t.stop()); });
 </script>
-
 </body>
 </html>
