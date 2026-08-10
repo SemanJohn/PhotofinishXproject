@@ -11,17 +11,23 @@
         /* 1. SKRIN UTAMA (MAIN PAGE) */
         #mainScreen { display: flex; flex-direction: column; height: 100%; width: 100%; }
         header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1e1e1e; border-bottom: 1px solid #333; height: 50px; flex-shrink: 0; }
-        .app-title { font-size: 0.95rem; font-weight: bold; color: #00ffcc; }
-        .timer-display { font-size: 1.4rem; font-family: monospace; font-weight: bold; color: #00ffcc; background: #000; padding: 2px 10px; border-radius: 4px; border: 1px solid #00ffcc; }
+        .header-left { display: flex; align-items: center; gap: 8px; }
+        .app-title { font-size: 0.9rem; font-weight: bold; color: #00ffcc; }
+        .timer-display { font-size: 1.35rem; font-family: monospace; font-weight: bold; color: #00ffcc; background: #000; padding: 2px 8px; border-radius: 4px; border: 1px solid #00ffcc; }
+        
+        .btn-icon { background: #333; border: 1px solid #555; color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
+        .btn-icon:hover { background: #444; }
 
-        .main-body { flex: 1; display: flex; flex-direction: column; padding: 8px; gap: 8px; overflow: hidden; justify-content: center; }
-        .video-box { position: relative; width: 100%; flex: 1; max-height: 65vh; background: #000; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; border: 2px solid #333; }
+        .main-body { flex: 1; display: flex; flex-direction: column; padding: 6px; gap: 6px; overflow: hidden; justify-content: center; }
+        .status-bar { background: #222; border: 1px solid #333; color: #ffeb3b; font-size: 0.75rem; text-align: center; padding: 4px; border-radius: 4px; font-weight: bold; }
+
+        .video-box { position: relative; width: 100%; flex: 1; max-height: 60vh; background: #000; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; border: 2px solid #333; }
         video { width: 100%; height: 100%; object-fit: contain; }
         .finish-line-overlay { position: absolute; top: 0; bottom: 0; width: 2px; background-color: red; z-index: 10; }
 
-        .main-controls { background: #1e1e1e; padding: 12px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+        .main-controls { background: #1e1e1e; padding: 10px 12px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
         .start-stop-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn-large { padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; }
+        .btn-large { padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; }
         .btn-start { background-color: #28a745; color: white; }
         .btn-stop { background-color: #dc3545; color: white; }
 
@@ -29,7 +35,7 @@
         .slider-group { display: flex; align-items: center; gap: 6px; flex: 1; }
         input[type="range"] { width: 100%; accent-color: #00ffcc; height: 18px; }
 
-        /* 2. SKRIN SEMAKAN (REVIEW SCREEN) */
+        /* 2. SKRIN SEMAK GAMBAR SLICE (REVIEW PAGE) */
         #reviewScreen { display: none; flex-direction: column; height: 100%; width: 100%; background: #121212; position: absolute; top: 0; left: 0; z-index: 100; }
         .review-header { background: #1e1e1e; padding: 10px 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; height: 55px; flex-shrink: 0; }
         .review-title { font-size: 0.85rem; color: #aaa; }
@@ -47,6 +53,23 @@
         .btn-back { background-color: #6c757d; color: white; }
         .btn-delete { background-color: #dc3545; color: white; }
         .btn-save-final { background-color: #28a745; color: white; }
+
+        /* 3. MODAL SETTING */
+        #settingModal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; padding: 15px; }
+        .setting-box { background: #1e1e1e; border: 1px solid #444; border-radius: 12px; width: 100%; max-width: 480px; padding: 16px; display: flex; flex-direction: column; gap: 14px; max-height: 90vh; overflow-y: auto; }
+        .setting-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; }
+        .setting-title { font-size: 1.1rem; font-weight: bold; color: #00ffcc; }
+
+        .setting-item { display: flex; flex-direction: column; gap: 6px; }
+        .setting-label { font-size: 0.85rem; color: #ccc; font-weight: bold; }
+        select, input[type="text"] { width: 100%; padding: 8px; background: #111; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 0.85rem; }
+
+        .mic-meter-box { background: #111; border: 1px solid #333; border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+        .mic-meter-bar-bg { width: 100%; height: 12px; background: #222; border-radius: 6px; overflow: hidden; position: relative; }
+        .mic-meter-bar-fill { height: 100%; width: 0%; background: #28a745; transition: width 0.05s linear; }
+        .mic-threshold-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ffeb3b; z-index: 2; }
+
+        .btn-close-setting { background: #00ffcc; color: #000; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; margin-top: 6px; }
     </style>
 </head>
 <body>
@@ -54,11 +77,15 @@
     <!-- 1. SKRIN UTAMA (MAIN PAGE) -->
     <div id="mainScreen">
         <header>
-            <div class="app-title">PHOTO FINISH</div>
+            <div class="header-left">
+                <button class="btn-icon" id="btnOpenSetting">⚙️ SETTING</button>
+                <div class="app-title">PHOTO FINISH</div>
+            </div>
             <div class="timer-display" id="timerDisplay">00:00.000</div>
         </header>
 
         <div class="main-body">
+            <div class="status-bar" id="statusBar">Mod Mula: Manual (Tekan 'MULA')</div>
             <div class="video-box">
                 <video id="webcam" autoplay playsinline muted></video>
                 <div class="finish-line-overlay" id="finishLine" style="left: 50%;"></div>
@@ -92,12 +119,10 @@
         </div>
 
         <div class="review-body">
-            <!-- Canvas Gambar Slice -->
             <div class="canvas-container" id="canvasScroll">
                 <canvas id="photoCanvas" height="400" width="3000"></canvas>
             </div>
 
-            <!-- Slider Garisan Penanda Masa -->
             <div class="marker-control-box">
                 <div class="marker-control-label">
                     <span>↔ Gerakkan Garisan Masa Pelari:</span>
@@ -107,7 +132,6 @@
             </div>
         </div>
 
-        <!-- Butang Tindakan -->
         <div class="review-actions">
             <button class="btn-action btn-back" id="btnBack">⬅ BACK</button>
             <button class="btn-action btn-delete" id="btnDelete">🗑 BUANG</button>
@@ -115,25 +139,86 @@
         </div>
     </div>
 
+    <!-- 3. MODAL SETTING -->
+    <div id="settingModal">
+        <div class="setting-box">
+            <div class="setting-header">
+                <div class="setting-title">⚙️ TETAPAN SISTEM</div>
+                <button class="btn-icon" id="btnCloseSetting">✖</button>
+            </div>
+
+            <!-- Pilih Kamera -->
+            <div class="setting-item">
+                <div class="setting-label">📹 Pilih Kamera (Laptop / Phone):</div>
+                <select id="cameraSelect">
+                    <option value="">Mengesan kamera...</option>
+                </select>
+            </div>
+
+            <!-- Pilih Lensa (Normal / Wide Angle) -->
+            <div class="setting-item">
+                <div class="setting-label">🔍 Mod Lensa Kamera:</div>
+                <select id="lensSelect">
+                    <option value="normal">Normal Lens (Default)</option>
+                    <option value="wide">Wide Angle (Sudut Luas / Ultra-Wide)</option>
+                </select>
+            </div>
+
+            <!-- Mod Trigger Mula (Manual vs Sound Trigger) -->
+            <div class="setting-item">
+                <div class="setting-label">⏱ Mod Mula Masa (Start Trigger):</div>
+                <select id="triggerModeSelect">
+                    <option value="manual">Manual (Tekan Butang 'MULA')</option>
+                    <option value="sound">Trigger Bunyi (Pistol / Bunyi Nyaring)</option>
+                </select>
+            </div>
+
+            <!-- Tetapan Sensitiviti Bunyi -->
+            <div class="setting-item" id="soundSettingGroup" style="display: none;">
+                <div class="setting-label">🎤 Sensitiviti Trigger Bunyi:</div>
+                <div class="slider-group">
+                    <input type="range" id="soundThresholdSlider" min="10" max="95" value="50">
+                    <span id="soundThresholdVal">50%</span>
+                </div>
+                
+                <div class="mic-meter-box">
+                    <div style="font-size: 0.7rem; color: #aaa;">Tahap Bunyi Semasa (Uji Bunyi Tepuk/Tembakan):</div>
+                    <div class="mic-meter-bar-bg">
+                        <div class="mic-meter-bar-fill" id="micMeterFill"></div>
+                        <div class="mic-threshold-line" id="micThresholdLine" style="left: 50%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-close-setting" id="btnSaveSetting">SIMPAN & TUTUP</button>
+        </div>
+    </div>
+
 <script>
-    // Elemen Skrin
+    // Skrin & Modal
     const mainScreen = document.getElementById('mainScreen');
     const reviewScreen = document.getElementById('reviewScreen');
+    const settingModal = document.getElementById('settingModal');
 
-    // Elemen Kamera & Timer
+    // Elemen Main Screen
     const video = document.getElementById('webcam');
     const finishLine = document.getElementById('finishLine');
     const timerDisplay = document.getElementById('timerDisplay');
-    const inspectTimeBadge = document.getElementById('inspectTimeBadge');
+    const statusBar = document.getElementById('statusBar');
 
-    // Canvas
+    // Elemen Canvas & Review
     const photoCanvas = document.getElementById('photoCanvas');
     const ctx = photoCanvas.getContext('2d');
     const canvasScroll = document.getElementById('canvasScroll');
+    const inspectTimeBadge = document.getElementById('inspectTimeBadge');
 
-    // Controls
+    // Controls Utama
     const btnStart = document.getElementById('btnStart');
     const btnStop = document.getElementById('btnStop');
+    const btnOpenSetting = document.getElementById('btnOpenSetting');
+    const btnCloseSetting = document.getElementById('btnCloseSetting');
+    const btnSaveSetting = document.getElementById('btnSaveSetting');
+
     const btnBack = document.getElementById('btnBack');
     const btnDelete = document.getElementById('btnDelete');
     const btnSaveFinal = document.getElementById('btnSaveFinal');
@@ -144,6 +229,17 @@
     const markerSlider = document.getElementById('markerSlider');
     const markerPosPercent = document.getElementById('markerPosPercent');
 
+    // Elemen Setting
+    const cameraSelect = document.getElementById('cameraSelect');
+    const lensSelect = document.getElementById('lensSelect');
+    const triggerModeSelect = document.getElementById('triggerModeSelect');
+    const soundSettingGroup = document.getElementById('soundSettingGroup');
+    const soundThresholdSlider = document.getElementById('soundThresholdSlider');
+    const soundThresholdVal = document.getElementById('soundThresholdVal');
+    const micMeterFill = document.getElementById('micMeterFill');
+    const micThresholdLine = document.getElementById('micThresholdLine');
+
+    // Tetapan Dalaman
     let isScanning = false;
     let startTime = null;
     let timerInterval = null;
@@ -151,44 +247,177 @@
     let sliceWidth = parseInt(sliceWidthSlider.value);
     let slitPercent = 0.5;
 
-    let timeAtPixel = [];
-    let rawCanvasData = null; // Salinan asal canvas tanpa garisan penanda
-    let activeMarkerX = 0;
+    let selectedDeviceId = "";
+    let selectedLensMode = "normal";
+    let triggerMode = "manual";
+    let soundThreshold = 50;
+    let isWaitingForSound = false;
 
-    // Inisialisasi Kamera
-    async function initCamera() {
+    let timeAtPixel = [];
+    let rawCanvasData = null;
+    let currentStream = null;
+
+    // Web Audio API
+    let audioCtx = null;
+    let analyser = null;
+    let micStream = null;
+    let isMicActive = false;
+
+    // 1. PENGURUSAN KAMERA (AUTO DETECT + SOKONGAN PELBAGAI KAMERA)
+    async function getCameraDevices() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: 'environment',
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    frameRate: { ideal: 60 }
-                },
-                audio: false
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(d => d.kind === 'videoinput');
+            
+            cameraSelect.innerHTML = "";
+            videoDevices.forEach((device, index) => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.text = device.label || `Kamera ${index + 1}`;
+                cameraSelect.appendChild(option);
             });
-            video.srcObject = stream;
+
+            if (videoDevices.length > 0 && !selectedDeviceId) {
+                const backCam = videoDevices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
+                selectedDeviceId = backCam ? backCam.deviceId : videoDevices[0].deviceId;
+                cameraSelect.value = selectedDeviceId;
+            }
+        } catch (err) {
+            console.error("Gagal mengesan peranti kamera:", err);
+        }
+    }
+
+    async function startCamera() {
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+        }
+
+        const constraints = {
+            video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 60 }
+            },
+            audio: false
+        };
+
+        if (selectedDeviceId) {
+            constraints.video.deviceId = { exact: selectedDeviceId };
+        } else {
+            constraints.video.facingMode = "environment";
+        }
+
+        if (selectedLensMode === "wide") {
+            constraints.video.advanced = [{ zoom: 0.5 }];
+        }
+
+        try {
+            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = currentStream;
             video.onloadedmetadata = () => {
                 photoCanvas.height = video.videoHeight || 480;
                 clearCanvas();
             };
+            await getCameraDevices();
         } catch (err) {
-            alert('Gagal mengakses kamera: ' + err.message);
+            console.warn("Mencuba tetapan fallback kamera...", err);
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                video.srcObject = currentStream;
+            } catch (fallbackErr) {
+                alert("Gagal mengalirkan kamera: " + fallbackErr.message);
+            }
         }
     }
 
-    slitPosSlider.addEventListener('input', (e) => {
-        slitPercent = e.target.value / 100;
-        finishLine.style.left = `${e.target.value}%`;
+    // 2. TETAPAN SETTING MODAL
+    btnOpenSetting.addEventListener('click', () => {
+        settingModal.style.display = 'flex';
+        initMicForMeter();
     });
 
-    sliceWidthSlider.addEventListener('input', (e) => {
-        sliceWidth = parseInt(e.target.value);
-        sliceWidthVal.innerText = `${sliceWidth}px`;
+    btnCloseSetting.addEventListener('click', closeSettingModal);
+    btnSaveSetting.addEventListener('click', closeSettingModal);
+
+    function closeSettingModal() {
+        settingModal.style.display = 'none';
+        
+        if (cameraSelect.value) {
+            selectedDeviceId = cameraSelect.value;
+        }
+        selectedLensMode = lensSelect.value;
+        triggerMode = triggerModeSelect.value;
+
+        startCamera();
+
+        if (triggerMode === 'sound') {
+            statusBar.innerText = "Mod Mula: Trigger Bunyi (Tekan 'SEDIA' & Tembak Pistol)";
+            btnStart.innerText = "🎤 SEDIA (ARM)";
+        } else {
+            statusBar.innerText = "Mod Mula: Manual (Tekan 'MULA')";
+            btnStart.innerText = "▶ MULA";
+        }
+    }
+
+    triggerModeSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'sound') {
+            soundSettingGroup.style.display = 'flex';
+            initMicForMeter();
+        } else {
+            soundSettingGroup.style.display = 'none';
+        }
     });
 
-    // 1. MULA LARIAN (START)
-    btnStart.addEventListener('click', () => {
+    soundThresholdSlider.addEventListener('input', (e) => {
+        soundThreshold = parseInt(e.target.value);
+        soundThresholdVal.innerText = `${soundThreshold}%`;
+        micThresholdLine.style.left = `${soundThreshold}%`;
+    });
+
+    // 3. SOUND TRIGGER (WEB AUDIO API)
+    async function initMicForMeter() {
+        if (isMicActive) return;
+        try {
+            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            
+            const source = audioCtx.createMediaStreamSource(micStream);
+            source.connect(analyser);
+            isMicActive = true;
+            listenMicLevel();
+        } catch (err) {
+            console.error("Mikrofon tidak dapat diakses untuk sound trigger:", err);
+        }
+    }
+
+    function listenMicLevel() {
+        if (!analyser) return;
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(dataArray);
+
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+        }
+        const average = sum / dataArray.length;
+        const volumePercent = Math.min(100, Math.round((average / 128) * 100));
+
+        micMeterFill.style.width = `${volumePercent}%`;
+
+        if (isWaitingForSound && volumePercent >= soundThreshold) {
+            triggerStartBySound();
+        }
+
+        requestAnimationFrame(listenMicLevel);
+    }
+
+    function triggerStartBySound() {
+        isWaitingForSound = false;
+        statusBar.innerText = "💥 SOUND TRIGGER TERCETUS! LARIAN BERMULA!";
+        statusBar.style.color = "#28a745";
+
         isScanning = true;
         startTime = performance.now();
         currentX = 0;
@@ -197,44 +426,59 @@
 
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(updateTimerDisplay, 10);
+    }
+
+    // 4. KAWALAN BUTANG MULA & STOP
+    btnStart.addEventListener('click', () => {
+        if (triggerMode === 'sound') {
+            isWaitingForSound = true;
+            statusBar.innerText = "🎤 MENUNGGU BUNYI TEMBAKAN / PERLEPAS...";
+            statusBar.style.color = "#ffeb3b";
+            initMicForMeter();
+        } else {
+            isScanning = true;
+            startTime = performance.now();
+            currentX = 0;
+            timeAtPixel = [];
+            clearCanvas();
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimerDisplay, 10);
+            statusBar.innerText = "▶ LARIAN SEDANG BERLANGSUNG...";
+            statusBar.style.color = "#00ffcc";
+        }
     });
 
-    // 2. TEKAN STOP -> AUTOMATIK KE SKRIN SEMAK GAMBAR SLICE
     btnStop.addEventListener('click', () => {
         isScanning = false;
+        isWaitingForSound = false;
         if (timerInterval) {
             clearInterval(timerInterval);
             timerInterval = null;
         }
 
         if (currentX === 0) {
-            alert("Tiada gambar dirakam lagi. Tekan MULA dahulu.");
+            alert("Tiada gambar dirakam lagi. Tekan MULA/SEDIA dahulu.");
             return;
         }
 
-        // Simpan gambar asal canvas
         saveCanvasState();
 
-        // Sediakan Slider Garisan Penanda
         markerSlider.min = 0;
         markerSlider.max = Math.max(currentX - 1, 0);
         markerSlider.value = Math.floor(currentX / 2);
         
-        // Kemas kini garisan penanda
         updateMarkerPosition(parseInt(markerSlider.value));
 
-        // Tunjuk Skrin Semakan (Review Screen)
         mainScreen.style.display = 'none';
         reviewScreen.style.display = 'flex';
     });
 
-    // 3. SKRIN SEMAKAN: GERAKKAN GARISAN MASA (SLIDER)
+    // 5. SKRIN SEMAKAN & PENANDA MASA
     markerSlider.addEventListener('input', (e) => {
-        const targetX = parseInt(e.target.value);
-        updateMarkerPosition(targetX);
+        updateMarkerPosition(parseInt(e.target.value));
     });
 
-    // Boleh juga sentuh terus pada canvas untuk alihkan garisan penanda
     photoCanvas.addEventListener('click', (e) => {
         const rect = photoCanvas.getBoundingClientRect();
         const clickX = Math.floor(e.clientX - rect.left);
@@ -244,12 +488,9 @@
 
     function updateMarkerPosition(x) {
         if (x < 0 || x >= currentX) return;
-        activeMarkerX = x;
 
-        // Pulihkan canvas asal
         restoreCanvasState();
 
-        // Lukis Garisan Penanda Masa (Kuning Terang)
         ctx.strokeStyle = '#ffeb3b';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
@@ -257,14 +498,12 @@
         ctx.lineTo(x, photoCanvas.height);
         ctx.stroke();
 
-        // Kemas kini paparan masa
         const recordedTime = timeAtPixel[x] || 0;
         inspectTimeBadge.innerText = formatTime(recordedTime);
         
         const pct = Math.round((x / currentX) * 100);
         markerPosPercent.innerText = `${pct}%`;
 
-        // Auto-scroll supaya garisan penanda sentiasa nampak
         canvasScroll.scrollLeft = x - (canvasScroll.clientWidth / 2);
     }
 
@@ -278,13 +517,11 @@
         }
     }
 
-    // 4. BUTANG BACK (KEMBALI KE SKRIN UTAMA)
     btnBack.addEventListener('click', () => {
         reviewScreen.style.display = 'none';
         mainScreen.style.display = 'flex';
     });
 
-    // 5. BUTANG BUANG (DELETE & AUTO KEMBALI KE SKRIN UTAMA)
     btnDelete.addEventListener('click', () => {
         clearCanvas();
         timerDisplay.innerText = "00:00.000";
@@ -292,14 +529,12 @@
         mainScreen.style.display = 'flex';
     });
 
-    // 6. BUTANG SIMPAN (SAVE IMAGE & AUTO KEMBALI KE SKRIN UTAMA)
     btnSaveFinal.addEventListener('click', () => {
         const exportCanvas = document.createElement('canvas');
         exportCanvas.width = Math.max(currentX, 100);
         exportCanvas.height = photoCanvas.height;
         const exportCtx = exportCanvas.getContext('2d');
         
-        // Lukiskan canvas semasa bersama garisan penanda kuning
         exportCtx.drawImage(photoCanvas, 0, 0, exportCanvas.width, exportCanvas.height, 0, 0, exportCanvas.width, exportCanvas.height);
 
         const link = document.createElement('a');
@@ -307,11 +542,20 @@
         link.href = exportCanvas.toDataURL('image/png');
         link.click();
 
-        // Kembalikan ke Skrin Utama
         clearCanvas();
         timerDisplay.innerText = "00:00.000";
         reviewScreen.style.display = 'none';
         mainScreen.style.display = 'flex';
+    });
+
+    slitPosSlider.addEventListener('input', (e) => {
+        slitPercent = e.target.value / 100;
+        finishLine.style.left = `${e.target.value}%`;
+    });
+
+    sliceWidthSlider.addEventListener('input', (e) => {
+        sliceWidth = parseInt(e.target.value);
+        sliceWidthVal.innerText = `${sliceWidth}px`;
     });
 
     function updateTimerDisplay() {
@@ -390,7 +634,7 @@
         }
     }
 
-    initCamera();
+    startCamera();
     requestAnimationFrame(processFrame);
 </script>
 
