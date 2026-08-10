@@ -4,7 +4,7 @@
    Pengaktifan versi baharu dikawal oleh halaman melalui mesej 'skipWaiting',
    supaya aplikasi tidak dimuat semula di tengah-tengah rakaman. */
 
-const VERSION = 'photofinishx-v5.0.0';
+const VERSION = 'photofinishx-v5.1.0';
 const SHELL = [
   './',
   './index.html',
