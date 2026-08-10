@@ -106,7 +106,7 @@
   .b-back{background:#484f58} .b-del{background:var(--stop)} .b-save{background:var(--go)}
 
   /* ---------- TETAPAN ---------- */
-  #settingModal,#confirmModal{display:none;position:absolute;inset:0;background:rgba(0,0,0,.88);z-index:200;
+  #settingModal,#confirmModal,#saveModal{display:none;position:absolute;inset:0;background:rgba(0,0,0,.92);z-index:200;
     justify-content:center;align-items:center;padding:14px}
   .sbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:480px;
     padding:16px;display:flex;flex-direction:column;gap:14px;max-height:88dvh;overflow-y:auto}
@@ -154,7 +154,7 @@
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
       </div>
     </div>
-    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.4</span></div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.5</span></div>
     <canvas id="livePreview" height="54"></canvas>
   </div>
 
@@ -310,6 +310,20 @@
     <button class="btn-primary" id="btnApply">SIMPAN & TUTUP</button>
     <button class="btn-ghost" id="btnUpdate">⟳ SEMAK KEMAS KINI</button>
     <div class="hint" id="swState">Versi 3.8 — mod luar talian sedia.</div>
+  </div>
+</div>
+
+<div id="saveModal">
+  <div class="sbox" style="max-width:520px">
+    <div class="shead">
+      <div class="stitle">SIMPAN GAMBAR</div>
+      <button class="btn-icon" id="saveClose">✖</button>
+    </div>
+    <div style="background:#000;border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46dvh">
+      <img id="saveImg" alt="Imej photo finish" style="display:block;height:44dvh;max-width:none">
+    </div>
+    <div class="hint" id="saveHint">Tekan lama pada gambar di atas, kemudian pilih <b>Save Image</b> untuk simpan terus ke Galeri.</div>
+    <button class="btn-primary" id="saveShare">📤 BUKA MENU KONGSI</button>
   </div>
 </div>
 
@@ -1199,12 +1213,52 @@ function markSummary(){
   return marks.map((m, i) => '#' + (i+1) + ' — ' + fmt(m.t)).join('\n');
 }
 
+/* Muat turun fail tidak boleh dipercayai pada iOS, lebih-lebih lagi dalam mod
+   skrin utama — pautan 'download' diabaikan tanpa sebarang mesej. Jadi pada
+   iOS gambar dipaparkan supaya boleh disimpan terus ke Galeri, manakala
+   platform lain kekal muat turun biasa. */
+let saveUrl = null;
+
+function releaseSaveUrl(){
+  if(saveUrl){ URL.revokeObjectURL(saveUrl); saveUrl = null; }
+}
+
+function showSaveSheet(blob){
+  releaseSaveUrl();
+  saveUrl = URL.createObjectURL(blob);
+  $('saveImg').src = saveUrl;
+  $('saveModal').style.display = 'flex';
+}
+
+$('saveClose').addEventListener('click', () => {
+  $('saveModal').style.display = 'none';
+  releaseSaveUrl();
+  if(cameraOn) video.play().catch(()=>{});
+});
+
+$('saveShare').addEventListener('click', () => {
+  $('saveModal').style.display = 'none';
+  releaseSaveUrl();
+  $('btnShare').click();
+});
+
 $('btnSave').addEventListener('click', () => {
-  const a = document.createElement('a');
-  a.download = exportName();
-  a.href = buildExportCanvas().toDataURL('image/png');
-  a.click();
-  toast(marks.length ? marks.length + ' tanda disimpan' : 'Imej disimpan');
+  const name = exportName();
+  buildExportCanvas().toBlob(blob => {
+    if(!blob){ toast('Gagal menyediakan imej'); return; }
+
+    if(platformInfo().iOS){
+      showSaveSheet(blob);
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.download = name; a.href = url;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 8000);
+    toast(marks.length ? marks.length + ' tanda disimpan' : 'Imej disimpan');
+  }, 'image/png');
 });
 
 /* ---- kongsi terus ke Galeri / WhatsApp / Drive ---- */
@@ -1426,13 +1480,13 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       .then(reg => {
         swReg = reg;
         watchWorker(reg);
-        $('swState').textContent = 'Versi 4.4 — sedia digunakan tanpa internet.';
+        $('swState').textContent = 'Versi 4.5 — sedia digunakan tanpa internet.';
         setInterval(() => {
           checkUpdate(false);
           if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
         }, 60000);
       })
-      .catch(() => { $('swState').textContent = 'Versi 4.4 — mod luar talian tidak aktif.'; });
+      .catch(() => { $('swState').textContent = 'Versi 4.5 — mod luar talian tidak aktif.'; });
   });
 
   addEventListener('online', () => checkUpdate(false));
@@ -1440,7 +1494,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 4.4 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 4.5 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 $('btnUpdate').addEventListener('click', () => {
