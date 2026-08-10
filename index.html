@@ -115,7 +115,7 @@
   .b-back{background:#484f58} .b-del{background:var(--stop)} .b-save{background:var(--go)}
 
   /* ---------- TETAPAN ---------- */
-  #settingModal,#confirmModal,#saveModal{display:none;position:absolute;inset:0;background:rgba(0,0,0,.92);z-index:200;
+  #settingModal,#confirmModal,#saveModal,#nameModal{display:none;position:absolute;inset:0;background:rgba(0,0,0,.92);z-index:200;
     justify-content:center;align-items:center;padding:14px}
   .sbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:480px;
     padding:16px;display:flex;flex-direction:column;gap:14px;max-height:88dvh;overflow-y:auto}
@@ -144,6 +144,8 @@
   .run-info{flex:1;min-width:0}
   .run-title{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .run-sub{font-size:.68rem;color:var(--dim);margin-top:3px}
+  .run-dl{background:#12304d;border:1px solid #1f6feb;color:#8bc0ff;border-radius:8px;
+    padding:10px 12px;font-size:.85rem;font-weight:700;cursor:pointer;flex-shrink:0}
   .run-del{background:#3d1d1d;border:1px solid #7d2b2b;color:#ff9d9d;border-radius:8px;
     padding:10px 12px;font-size:.8rem;font-weight:700;cursor:pointer;flex-shrink:0}
   .runs-foot{padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--panel);
@@ -176,7 +178,7 @@
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
       </div>
     </div>
-    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.8</span></div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.9</span></div>
     <div class="lockbar">
       <button id="btnLock">🔓 KUNCI FOKUS & CAHAYA</button>
       <button id="btnRuns">🗂 REKOD</button>
@@ -248,11 +250,6 @@
     <div class="shead">
       <div class="stitle">TETAPAN SISTEM</div>
       <button class="btn-icon" id="btnCloseSet">✖</button>
-    </div>
-
-    <div class="field">
-      <div class="lab">Nama acara (untuk label & nama fail)</div>
-      <input type="text" id="inEvent" placeholder="cth: MSSD Muar — 100m L12 Akhir">
     </div>
 
     <div class="field">
@@ -355,6 +352,21 @@
   </div>
 </div>
 
+<div id="nameModal">
+  <div class="sbox" style="max-width:400px">
+    <div class="shead">
+      <div class="stitle">SIMPAN KE REKOD</div>
+      <button class="btn-icon" id="nameCancel">✖</button>
+    </div>
+    <div class="field">
+      <div class="lab">Nama acara</div>
+      <input type="text" id="nameInput" placeholder="cth: MSSD Muar — 100m L12 Akhir">
+      <div class="hint" id="nameHint">Nama ini dicetak pada imej dan digunakan sebagai nama fail.</div>
+    </div>
+    <button class="btn-primary" id="nameSave">💾 SIMPAN</button>
+  </div>
+</div>
+
 <div id="saveModal">
   <div class="sbox" style="max-width:520px">
     <div class="shead">
@@ -395,7 +407,7 @@ const S = {
   deviceId:'', lensMode:'normal', direction:'left_to_right',
   trigger:'manual', threshold:45,
   slitPct:0.50, srcWidth:2, pxPerSec:240,
-  eventName:'', stripH:360, maxW:20000,
+  stripH:360, maxW:20000,
   startDelay:0, autoStop:0,       // saat, diukur dari masa 0 (tembakan/MULA)
   targetFps:0, resW:1280, resH:720, // 0 = biar pelayar pilih
   speedMode:'auto', probed:false, cameraAuto:true
@@ -1103,7 +1115,7 @@ function renderStripCanvas(){
   }else{
     c.drawImage(strip, 0, 0, W, H, 0, 0, W, H);
   }
-  drawScale(c, W, H);
+  drawScale(c, W, H, rev.pps, rev.t0, rev.event, rev.ts, isFlipped());
   return W;
 }
 
@@ -1123,18 +1135,17 @@ function enterReview(){
 
 function buildReview(){
   flipView  = (S.direction === 'left_to_right');
-  rev = { pps:S.pxPerSec, t0:stripT0, event:S.eventName, ts:Date.now() };
+  rev = { pps:S.pxPerSec, t0:stripT0, event:'', ts:Date.now() };
   currentRunId = rev.ts;
   marks = [];
   enterReview();
   saveCurrentRun();          // tulis ke cakera di latar belakang
 }
 
-function drawScale(c, W, H){
-  const pps = rev.pps, flip = isFlipped();
+function drawScale(c, W, H, pps, t0, event, ts, flip){
   c.font = '600 11px ui-monospace, monospace';
   c.textAlign = 'center';
-  const base = rev.t0 / 1000;                 // masa mutlak pada piksel pertama
+  const base = t0 / 1000;                     // masa mutlak pada piksel pertama
   const span = W / pps;
   const first = Math.ceil(base * 10) / 10;
   for(let tAbs = first; tAbs <= base + span + 1e-9; tAbs += 0.1){
@@ -1150,11 +1161,11 @@ function drawScale(c, W, H){
     c.stroke();
     if(major && t > 0){ c.fillStyle = '#00e5c0'; c.fillText(Math.round(t) + 's', x, H - 28); }
   }
-  if(rev.event){
+  if(event){
     c.textAlign = 'left';
     c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(0, 0, Math.min(W, 460), 20);
     c.fillStyle = '#e6edf3';
-    c.fillText(rev.event + '  •  ' + new Date(rev.ts).toLocaleString('ms-MY'), 6, 14);
+    c.fillText(event + '  •  ' + new Date(ts).toLocaleString('ms-MY'), 6, 14);
   }
 }
 
@@ -1357,62 +1368,90 @@ $('btnResetImg').addEventListener('click', () => {
   paintImageAdjust();
 });
 
-/* ---- imej akhir: semua tanda dibakar ke dalam PNG ---- */
-function buildExportCanvas(){
-  const ex = document.createElement('canvas');
-  ex.width = photo.width; ex.height = photo.height;
-  const c = ex.getContext('2d', {alpha:false});
-  const adjusted = imgBright !== 100 || imgContrast !== 100;
-  if(adjusted && supportsCanvasFilter()){
-    c.filter = filterString();
-    c.drawImage(photo, 0, 0);
-    c.filter = 'none';
-  }else{
-    c.drawImage(photo, 0, 0);
-    if(adjusted) adjustPixels(c, ex.width, ex.height);
-  }
+/* ---- imej akhir: skala, tanda dan pelarasan cahaya dibakar ke dalam PNG ---- */
+function stampMarks(c, list, W, H, fallback){
   c.font = '800 15px ui-monospace, monospace';
   c.textAlign = 'center';
-
-  const stamp = (x, label, lineColor, fillColor, textColor, top) => {
-    c.strokeStyle = lineColor; c.lineWidth = 2;
-    c.beginPath(); c.moveTo(x + .5, 0); c.lineTo(x + .5, ex.height); c.stroke();
+  const stamp = (x, label, colour, textColour, top) => {
+    c.strokeStyle = colour; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(x + .5, 0); c.lineTo(x + .5, H); c.stroke();
     const w = c.measureText(label).width + 14;
-    const bx = Math.min(Math.max(0, x - w/2), ex.width - w);
-    c.fillStyle = fillColor; c.fillRect(bx, top, w, 22);
-    c.fillStyle = textColor; c.fillText(label, bx + w/2, top + 16);
+    const bx = Math.min(Math.max(0, x - w / 2), W - w);
+    c.fillStyle = colour; c.fillRect(bx, top, w, 22);
+    c.fillStyle = textColour; c.fillText(label, bx + w / 2, top + 16);
   };
-
-  marks.forEach((m, i) => stamp(m.x, '#' + (i+1) + ' ' + fmt(m.t), '#ff7ac6', '#ff7ac6', '#2a0018', 34 + (i % 4) * 26));
-  if(!marks.length) stamp(markerX, fmt(timeAtX(markerX)), '#ffd54a', '#ffd54a', '#000', 34);
-  return ex;
+  if(list.length){
+    list.forEach((m, i) => stamp(m.x, '#' + (i+1) + ' ' + fmt(m.t), '#ff7ac6', '#2a0018', 34 + (i % 4) * 26));
+  }else if(fallback){
+    stamp(fallback.x, fmt(fallback.t), '#ffd54a', '#000', 34);
+  }
 }
 
-function exportName(){
-  const d = new Date(), two = n => String(n).padStart(2, '0');
+function applyAdjust(c, src, W, H, bright, contrast){
+  const on = bright !== 100 || contrast !== 100;
+  if(on && supportsCanvasFilter()){
+    c.filter = 'brightness(' + bright + '%) contrast(' + contrast + '%)';
+    c.drawImage(src, 0, 0);
+    c.filter = 'none';
+  }else{
+    c.drawImage(src, 0, 0);
+    if(on){
+      const save = [imgBright, imgContrast];
+      imgBright = bright; imgContrast = contrast;
+      adjustPixels(c, W, H);
+      imgBright = save[0]; imgContrast = save[1];
+    }
+  }
+}
+
+/* Bina imej siap terus daripada rekod tersimpan — tidak bergantung pada
+   apa yang sedang dipapar di skrin, jadi boleh dimuat turun dari senarai. */
+async function composeRun(rec){
+  const img = await blobToImage(rec.blob);
+  const W = rec.w, H = rec.h;
+  const base = document.createElement('canvas');
+  base.width = W; base.height = H;
+  const b = base.getContext('2d', {alpha:false});
+  b.imageSmoothingEnabled = false;
+  b.fillStyle = '#000'; b.fillRect(0, 0, W, H);
+  if(rec.flip){ b.save(); b.translate(W, 0); b.scale(-1, 1); b.drawImage(img, 0, 0); b.restore(); }
+  else b.drawImage(img, 0, 0);
+  drawScale(b, W, H, rec.pps, rec.t0, rec.event, rec.ts, !!rec.flip);
+
+  const out = document.createElement('canvas');
+  out.width = W; out.height = H;
+  const c = out.getContext('2d', {alpha:false});
+  applyAdjust(c, base, W, H, rec.bright || 100, rec.contrast || 100);
+  stampMarks(c, rec.marks || [], W, H, null);
+  return out;
+}
+
+function exportName(rec){
+  const d = new Date(rec.ts), two = n => String(n).padStart(2, '0');
   const st = d.getFullYear() + two(d.getMonth()+1) + two(d.getDate()) + '_' +
              two(d.getHours()) + two(d.getMinutes()) + two(d.getSeconds());
-  const safe = (rev.event || 'photofinishx').replace(/[^\w\-]+/g, '_').slice(0, 40);
+  const safe = (rec.event || 'photofinishx').replace(/[^\w\-]+/g, '_').slice(0, 40);
   return safe + '_' + st + '.png';
 }
 
-function markSummary(){
-  if(!marks.length) return 'Masa: ' + fmt(timeAtX(markerX));
-  return marks.map((m, i) => '#' + (i+1) + ' — ' + fmt(m.t)).join('\n');
+function markSummary(rec){
+  const list = rec.marks || [];
+  if(!list.length) return 'Tiada tanda.';
+  return list.map((m, i) => '#' + (i+1) + ' — ' + fmt(m.t)).join('\n');
 }
 
 /* Muat turun fail tidak boleh dipercayai pada iOS, lebih-lebih lagi dalam mod
    skrin utama — pautan 'download' diabaikan tanpa sebarang mesej. Jadi pada
-   iOS gambar dipaparkan supaya boleh disimpan terus ke Galeri, manakala
-   platform lain kekal muat turun biasa. */
-let saveUrl = null;
+   iOS gambar dipaparkan supaya boleh disimpan terus ke Galeri. */
+let saveUrl = null, saveBlob = null, saveMeta = null;
 
 function releaseSaveUrl(){
   if(saveUrl){ URL.revokeObjectURL(saveUrl); saveUrl = null; }
 }
 
-function showSaveSheet(blob){
+function showSaveSheet(blob, rec){
   releaseSaveUrl();
+  saveBlob = blob; saveMeta = rec;
   saveUrl = URL.createObjectURL(blob);
   $('saveImg').src = saveUrl;
   $('saveModal').style.display = 'flex';
@@ -1424,55 +1463,67 @@ $('saveClose').addEventListener('click', () => {
   if(cameraOn) video.play().catch(()=>{});
 });
 
-$('saveShare').addEventListener('click', () => {
-  $('saveModal').style.display = 'none';
-  releaseSaveUrl();
-  shareImage();
+$('saveShare').addEventListener('click', async () => {
+  if(!saveBlob) return;
+  const name = exportName(saveMeta);
+  const file = new File([saveBlob], name, { type:'image/png' });
+  const payload = {
+    files:[file],
+    title: saveMeta.event || 'PhotoFinishX',
+    text: (saveMeta.event ? saveMeta.event + '\n' : '') + markSummary(saveMeta)
+  };
+  if(navigator.canShare && navigator.canShare({ files:[file] })){
+    try{ await navigator.share(payload); }
+    catch(e){ if(e.name !== 'AbortError') toast('Perkongsian dibatalkan'); }
+  }else{
+    toast('Pelayar tidak sokong menu kongsi');
+  }
 });
 
-$('btnSave').addEventListener('click', () => {
-  const name = exportName();
-  buildExportCanvas().toBlob(blob => {
+async function downloadRun(rec){
+  toast('Menyediakan imej…');
+  let canvas;
+  try{ canvas = await composeRun(rec); }
+  catch(e){ toast('Imej rekod tidak dapat dibaca'); return; }
+  canvas.toBlob(blob => {
     if(!blob){ toast('Gagal menyediakan imej'); return; }
-
-    if(platformInfo().iOS){
-      showSaveSheet(blob);
-      return;
-    }
-
+    if(platformInfo().iOS){ showSaveSheet(blob, rec); return; }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.download = name; a.href = url;
+    a.download = exportName(rec); a.href = url;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 8000);
-    toast(marks.length ? marks.length + ' tanda disimpan' : 'Imej disimpan');
-  }, 'image/png');
-});
-
-/* ---- kongsi terus ke Galeri / WhatsApp / Drive ----
-   Dipanggil dari tetingkap SIMPAN; tiada lagi butang berasingan. */
-function shareImage(){
-  const name = exportName();
-  buildExportCanvas().toBlob(async blob => {
-    if(!blob){ toast('Gagal menyediakan imej'); return; }
-    const file = new File([blob], name, { type:'image/png' });
-    const payload = {
-      files:[file],
-      title: rev.event || 'PhotoFinishX',
-      text: (rev.event ? rev.event + '\n' : '') + markSummary()
-    };
-    if(navigator.canShare && navigator.canShare({ files:[file] })){
-      try{ await navigator.share(payload); }
-      catch(e){ if(e.name !== 'AbortError') toast('Perkongsian dibatalkan'); }
-    }else{
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.download = name; a.href = url; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-      toast('Pelayar tidak sokong kongsi — imej dimuat turun');
-    }
+    toast('Imej dimuat turun');
   }, 'image/png');
 }
+
+/* ---- SIMPAN di skrin semakan: namakan acara, tulis ganti rekod yang sama ---- */
+$('btnSave').addEventListener('click', () => {
+  $('nameInput').value = rev.event || '';
+  $('nameHint').textContent = currentRunId
+    ? 'Menyimpan semula rekod ini. Nama lama boleh diubah.'
+    : 'Nama ini dicetak pada imej dan digunakan sebagai nama fail.';
+  $('nameModal').style.display = 'flex';
+  setTimeout(() => $('nameInput').focus(), 60);
+});
+
+$('nameCancel').addEventListener('click', () => {
+  $('nameModal').style.display = 'none';
+  if(cameraOn) video.play().catch(()=>{});
+});
+
+$('nameSave').addEventListener('click', async () => {
+  rev.event = $('nameInput').value.trim();
+  $('nameModal').style.display = 'none';
+  renderStripCanvas();       // cetak semula kapsyen dengan nama baharu
+  renderMarks();
+  applyZoom();
+  setMarker(markerX, false);
+  await saveCurrentRun();    // tulis ganti rekod yang sama
+  refreshRunCount();
+  toast(rev.event ? 'Disimpan: ' + rev.event : 'Disimpan ke rekod');
+  if(cameraOn) video.play().catch(()=>{});
+});
 
 /* ---------------- Pelarasan pantas ---------------- */
 $('slSlit').addEventListener('input', e => {
@@ -1520,7 +1571,6 @@ async function closeSettings(){
   S.lensMode  = $('selLens').value;
   S.direction = $('selDir').value;
   S.trigger   = $('selTrig').value;
-  S.eventName = $('inEvent').value.trim();
   const fpsChanged = (+$('selFps').value !== S.targetFps) || ($('selRes').value !== S.resW + 'x' + S.resH);
   S.targetFps = +$('selFps').value;
   const rr = $('selRes').value.split('x');
@@ -1554,7 +1604,7 @@ function saveSettings(){
   try{ localStorage.setItem(KEY, JSON.stringify({
     deviceId:S.deviceId, lensMode:S.lensMode, direction:S.direction,
     trigger:S.trigger, threshold:S.threshold, slitPct:S.slitPct,
-    srcWidth:S.srcWidth, pxPerSec:S.pxPerSec, eventName:S.eventName,
+    srcWidth:S.srcWidth, pxPerSec:S.pxPerSec,
     startDelay:S.startDelay, autoStop:S.autoStop,
     targetFps:S.targetFps, resW:S.resW, resH:S.resH,
     speedMode:S.speedMode, probed:S.probed, cameraAuto:S.cameraAuto
@@ -1566,7 +1616,6 @@ function loadSettings(){
     if(!raw) return;
     Object.assign(S, JSON.parse(raw));
   }catch(e){}
-  $('inEvent').value = S.eventName || '';
   $('selFps').value = String(S.targetFps || 0);
   $('selRes').value = S.resW + 'x' + S.resH;
   $('selSpeedMode').value = S.speedMode || 'auto';
@@ -1669,13 +1718,13 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       .then(reg => {
         swReg = reg;
         watchWorker(reg);
-        $('swState').textContent = 'Versi 4.8 — sedia digunakan tanpa internet.';
+        $('swState').textContent = 'Versi 4.9 — sedia digunakan tanpa internet.';
         setInterval(() => {
           checkUpdate(false);
           if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
         }, 60000);
       })
-      .catch(() => { $('swState').textContent = 'Versi 4.8 — mod luar talian tidak aktif.'; });
+      .catch(() => { $('swState').textContent = 'Versi 4.9 — mod luar talian tidak aktif.'; });
   });
 
   addEventListener('online', () => checkUpdate(false));
@@ -1683,7 +1732,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 4.8 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 4.9 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 $('btnUpdate').addEventListener('click', () => {
@@ -1761,6 +1810,7 @@ async function saveCurrentRun(){
       id: currentRunId, ts: rev.ts, event: rev.event,
       pps: rev.pps, t0: rev.t0, flip: flipView,
       w: raw.width, h: raw.height,
+      bright: imgBright, contrast: imgContrast,
       marks: marks.map(m => ({ x:m.x, t:m.t })),
       blob, thumb
     });
@@ -1845,6 +1895,12 @@ async function showRuns(){
         '<div class="run-sub">' + dur.toFixed(1) + ' s · ' +
         (r.marks ? r.marks.length : 0) + ' tanda · ' + r.pps + ' px/s</div>';
 
+      const dl = document.createElement('button');
+      dl.className = 'run-dl';
+      dl.textContent = '⬇';
+      dl.title = 'Simpan ke peranti';
+      dl.addEventListener('click', ev => { ev.stopPropagation(); downloadRun(r); });
+
       const del = document.createElement('button');
       del.className = 'run-del';
       del.textContent = '🗑';
@@ -1857,7 +1913,7 @@ async function showRuns(){
       });
 
       row.addEventListener('click', () => openRun(r.id));
-      row.appendChild(im); row.appendChild(info); row.appendChild(del);
+      row.appendChild(im); row.appendChild(info); row.appendChild(dl); row.appendChild(del);
       box.appendChild(row);
     }
   }
@@ -1889,6 +1945,8 @@ async function openRun(id){
 
   rev = { pps:rec.pps, t0:rec.t0, event:rec.event, ts:rec.ts };
   flipView = !!rec.flip;
+  imgBright = rec.bright || 100; imgContrast = rec.contrast || 100;
+  $('slBright').value = imgBright; $('slContrast').value = imgContrast;
   marks = (rec.marks || []).map(m => ({ x:m.x, t:m.t }));
   currentRunId = rec.id;
 
