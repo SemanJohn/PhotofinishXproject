@@ -74,9 +74,9 @@
     border-radius:6px;border:1px solid rgba(255,213,74,.5)}
   .rev-body{flex:1;display:flex;flex-direction:column;padding:8px;gap:8px;overflow:hidden;min-height:0}
   .scroller{flex:1;min-height:0;background:#000;border:1px solid var(--accent);border-radius:10px;
-    overflow-x:auto;overflow-y:hidden;position:relative;-webkit-overflow-scrolling:touch}
-  .wrap{position:relative;height:100%;display:inline-block;touch-action:pan-x}
-  #photoCanvas{display:block;height:100%}
+    overflow:auto;position:relative;-webkit-overflow-scrolling:touch}
+  .wrap{position:relative;display:inline-block;touch-action:pan-x pan-y}
+  #photoCanvas{display:block}
   #marker{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--warn);z-index:6;pointer-events:none}
   #marker::before{content:attr(data-t);position:absolute;top:4px;left:6px;background:var(--warn);color:#000;
     font:800 11px ui-monospace,monospace;padding:2px 6px;border-radius:4px;white-space:nowrap}
@@ -154,7 +154,7 @@
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
       </div>
     </div>
-    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.2</span></div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.4</span></div>
     <canvas id="livePreview" height="54"></canvas>
   </div>
 
@@ -249,11 +249,12 @@
         <option value="240">240 fps</option>
       </select>
       <select id="selRes">
+        <option value="1920x1080">1920 × 1080</option>
         <option value="1280x720">1280 × 720</option>
         <option value="960x540">960 × 540</option>
         <option value="640x480">640 × 480</option>
       </select>
-      <div class="hint" id="fpsHint">Kadar tinggi biasanya hanya wujud pada resolusi rendah.</div>
+      <div class="hint" id="fpsHint">Resolusi tinggi memberi imej lebih terperinci, tetapi kadar frame selalunya turun. Auto akan pilih kadar frame dahulu.</div>
       <button class="btn-ghost" id="btnProbe">🔍 KESAN KEUPAYAAN MAKS</button>
       <div class="meter"><div class="hint" id="diag">Belum diuji.</div></div>
     </div>
@@ -532,9 +533,9 @@ function measureFps(ms){
 /* Cuba gabungan resolusi + kadar frame dari yang terbaik ke bawah, guna
    applyConstraints pada trek sedia ada supaya tiada permintaan izin baharu. */
 const COMBOS = [
-  [640,480,240], [1280,720,240],
-  [640,480,120], [960,540,120], [1280,720,120],
-  [1280,720,60], [960,540,60], [640,480,60]
+  [1920,1080,240], [1280,720,240], [960,540,240], [640,480,240],
+  [1920,1080,120], [1280,720,120], [960,540,120], [640,480,120],
+  [1920,1080,60],  [1280,720,60],  [960,540,60],  [640,480,60]
 ];
 
 let probing = false;
@@ -609,7 +610,8 @@ async function probeAllCameras(){
     'Kamera dipilih: <b>' + best.label + '</b><br>' +
     'Mod: <b>' + best.w + '×' + best.h + ' @' + best.f + ' fps</b><br>' +
     'Diukur sebenar: <b>' + measured + ' fps</b><br>' +
-    'Ketepatan masa: <b>±' + (1000 / Math.max(measured, 1) / 2).toFixed(1) + ' ms</b>' +
+    'Ketepatan masa: <b>±' + (1000 / Math.max(measured, 1) / 2).toFixed(1) + ' ms</b><br>' +
+    'Tinggi imej jalur: <b>' + S.stripH + ' px</b>' +
     (info.hardCap ? '<br>Nota: iOS menghadkan pelayar pada ' + info.hardCap + ' fps.' : '');
   toast(best.label + ' — ' + measured + ' fps');
 }
@@ -651,7 +653,8 @@ async function probeBest(silent){
     'Enjin: <b>' + info.engine + '</b><br>' +
     'Mod terbaik: <b>' + best.w + '×' + best.h + ' @' + best.f + ' fps</b><br>' +
     'Diukur sebenar: <b>' + measured + ' fps</b><br>' +
-    'Ketepatan masa: <b>±' + (1000 / Math.max(measured, 1) / 2).toFixed(1) + ' ms</b>' +
+    'Ketepatan masa: <b>±' + (1000 / Math.max(measured, 1) / 2).toFixed(1) + ' ms</b><br>' +
+    'Tinggi imej jalur: <b>' + S.stripH + ' px</b>' +
     (info.hardCap ? '<br>Nota: iOS menghadkan pelayar pada ' + info.hardCap + ' fps.' : '');
 
   if(!silent) toast(best.w + '×' + best.h + ' @' + measured + ' fps');
@@ -670,7 +673,10 @@ function applyAutoSpeed(measured){
 
 /* ---------------- Kanvas jalur ---------------- */
 function resetStrip(){
-  S.stripH = Math.min(video.videoHeight || 360, 400) || 360;
+  /* Jalur setinggi mungkin supaya badan pelari terperinci, tetapi luas kanvas
+     dihadkan kerana Safari iOS menolak kanvas yang terlalu besar. */
+  S.stripH = Math.min(video.videoHeight || 360, 720) || 360;
+  S.maxW   = Math.min(20000, Math.floor(9000000 / S.stripH));
   strip = document.createElement('canvas');
   strip.width = 2000; strip.height = S.stripH;
   sctx = strip.getContext('2d', {alpha:false});
@@ -1065,11 +1071,18 @@ $('btnClearMarks').addEventListener('click', async () => {
 
 /* ---- zum, garisan, gerak ---- */
 function applyZoom(){
-  const h = scroller.clientHeight || 200;
-  viewScale = (h / photo.height) * zoom;
-  photo.style.height = (photo.height * viewScale) + 'px';
-  photo.style.width  = (photo.width  * viewScale) + 'px';
-  wrap.style.width   = (photo.width  * viewScale) + 'px';
+  const box = scroller.clientHeight || 200;
+  /* Simpan titik yang sedang dilihat supaya zum tidak melompat ke atas. */
+  const oldH  = photo.clientHeight || box;
+  const ratio = (scroller.scrollTop + box / 2) / oldH;
+
+  viewScale = (box / photo.height) * zoom;
+  const w = photo.width * viewScale, h = photo.height * viewScale;
+  photo.style.height = h + 'px';
+  photo.style.width  = w + 'px';
+  wrap.style.width   = w + 'px';
+  wrap.style.height  = h + 'px';
+  scroller.scrollTop = Math.max(0, ratio * h - box / 2);
   marks.forEach((m, i) => {
     const el = marksLayer.children[i];
     if(el) el.style.left = (m.x * viewScale) + 'px';
@@ -1413,13 +1426,13 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       .then(reg => {
         swReg = reg;
         watchWorker(reg);
-        $('swState').textContent = 'Versi 4.2 — sedia digunakan tanpa internet.';
+        $('swState').textContent = 'Versi 4.4 — sedia digunakan tanpa internet.';
         setInterval(() => {
           checkUpdate(false);
           if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
         }, 60000);
       })
-      .catch(() => { $('swState').textContent = 'Versi 4.2 — mod luar talian tidak aktif.'; });
+      .catch(() => { $('swState').textContent = 'Versi 4.4 — mod luar talian tidak aktif.'; });
   });
 
   addEventListener('online', () => checkUpdate(false));
@@ -1427,7 +1440,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 4.2 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 4.4 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 $('btnUpdate').addEventListener('click', () => {
