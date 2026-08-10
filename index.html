@@ -42,6 +42,11 @@
   .stage{position:relative;flex:1;min-height:0;background:#000;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
   video{width:100%;height:100%;object-fit:contain;display:block}
   .finish-line{position:absolute;top:0;bottom:0;width:2px;background:#ff3b30;box-shadow:0 0 6px #ff3b30;z-index:5}
+  .cam-off{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;align-items:center;
+    gap:8px;background:#0b0f14;z-index:6;text-align:center;padding:20px}
+  .cam-off .big{font-size:2rem}
+  .cam-off .t{font-size:.82rem;font-weight:700;color:var(--dim);line-height:1.5}
+  .btn-cam.off{background:#3d2020;border-color:#7d2b2b;color:#ff9d9d}
   #livePreview{width:100%;height:54px;background:#000;border:1px solid var(--line);border-radius:8px;display:block;flex-shrink:0}
 
   .controls{background:var(--panel);padding:10px 12px calc(10px + env(safe-area-inset-bottom));
@@ -90,7 +95,8 @@
   .rev-actions{padding:8px calc(8px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));
     background:var(--panel);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;flex-shrink:0}
   .act-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
-  .act-row.b{grid-template-columns:1fr 1fr 1fr}
+  .act-row.b{grid-template-columns:repeat(4,1fr)}
+  .b-share{background:#1f6feb}
   .btn-act{padding:13px 4px;border:none;border-radius:8px;font-weight:800;font-size:.82rem;color:#fff;cursor:pointer}
   .b-mark{background:var(--mark);color:#2a0018} .b-undo{background:#484f58} .b-clear{background:#3d2430;color:var(--mark);border:1px solid var(--mark)}
   .b-back{background:#484f58} .b-del{background:var(--stop)} .b-save{background:var(--go)}
@@ -129,7 +135,7 @@
 <div id="mainScreen">
   <header>
     <button class="btn-icon" id="btnSetting">⚙ TETAPAN</button>
-    <div class="brand">PHOTO FINISH</div>
+    <button class="btn-icon btn-cam" id="btnCam">📷 KAMERA ON</button>
     <div class="clock mono" id="clock">0.000</div>
   </header>
 
@@ -139,6 +145,10 @@
     <div class="stage">
       <video id="webcam" autoplay playsinline muted></video>
       <div class="finish-line" id="finishLine" style="left:50%"></div>
+      <div class="cam-off" id="camOff">
+        <div class="big">📷</div>
+        <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
+      </div>
     </div>
     <div class="meta"><span id="metaCam">Kamera: —</span><span id="metaFps">FPS: —</span></div>
     <canvas id="livePreview" height="54"></canvas>
@@ -196,6 +206,7 @@
       <button class="btn-act b-back" id="btnBack">⬅ KEMBALI</button>
       <button class="btn-act b-del" id="btnDelete">🗑 BUANG</button>
       <button class="btn-act b-save" id="btnSave">💾 SIMPAN</button>
+      <button class="btn-act b-share" id="btnShare">📤 KONGSI</button>
     </div>
   </div>
 </div>
@@ -257,7 +268,7 @@
 
     <button class="btn-ghost" id="btnInstall" style="display:none">⬇ PASANG KE SKRIN UTAMA</button>
     <button class="btn-primary" id="btnApply">SIMPAN & TUTUP</button>
-    <div class="hint" id="swState">Versi 3.0 — mod luar talian sedia.</div>
+    <div class="hint" id="swState">Versi 3.1 — mod luar talian sedia.</div>
   </div>
 </div>
 
@@ -283,7 +294,7 @@ const S = {
 let mode = 'idle';                 // idle | armed | running
 let startTime = 0, lastX = 0;
 let strip = null, sctx = null;
-let stream = null, videoTrack = null;
+let stream = null, videoTrack = null, cameraOn = true;
 let markerX = 0, zoom = 1, viewScale = 1;
 let marks = [];                    // [{x, t}] tanda kekal pada imej
 
@@ -349,6 +360,9 @@ async function startCamera(){
   }
   video.srcObject = stream;
   videoTrack = stream.getVideoTracks()[0];
+  cameraOn = true;
+  paintCamState();
+  video.play().catch(()=>{});
   await applyZoomCapability();
   await listCameras();
 
@@ -359,6 +373,41 @@ async function startCamera(){
     resetStrip();
   };
 }
+
+function stopCameraStream(){
+  if(mode === 'running') stopCapture('manual');
+  mode = 'idle';
+  if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+  videoTrack = null;
+  video.srcObject = null;
+  cameraOn = false;
+  $('metaCam').textContent = 'Kamera: dimatikan';
+  $('metaFps').textContent = 'FPS: —';
+  paintCamState();
+}
+
+function paintCamState(){
+  const b = $('btnCam');
+  b.textContent = cameraOn ? '📷 KAMERA ON' : '📷 KAMERA OFF';
+  b.classList.toggle('off', !cameraOn);
+  $('camOff').style.display = cameraOn ? 'none' : 'flex';
+  $('btnStart').disabled = !cameraOn;
+  $('btnStart').style.opacity = cameraOn ? '1' : '.4';
+}
+
+$('btnCam').addEventListener('click', async () => {
+  if(cameraOn){
+    stopCameraStream();
+    releaseMic();
+    setStatus('Kamera dimatikan — penunjuk rakaman telefon padam.');
+  }else{
+    setStatus('Menghidupkan kamera…');
+    await startCamera();
+    if(cameraOn) setStatus(S.trigger === 'sound'
+      ? 'Mod bunyi — tekan SEDIA sebelum pelepas menembak.'
+      : 'Mod manual — tekan MULA untuk merakam.');
+  }
+});
 
 async function applyZoomCapability(){
   if(!videoTrack || !videoTrack.getCapabilities) return;
@@ -568,7 +617,8 @@ function buildReview(){
   $('slMarker').min = 0; $('slMarker').max = W - 1; $('slMarker').value = markerX;
   $('slZoom').value = 100; zoom = 1; $('vZoom').textContent = '100%';
 
-  $('mainScreen').style.display = 'none';
+  // Skrin utama TIDAK disembunyikan (display:none akan menghentikan strim video
+  // pada iOS dan memaksa kamera dibuka semula). Skrin semakan bertindih di atasnya.
   $('reviewScreen').style.display = 'flex';
   requestAnimationFrame(() => { applyZoom(); setMarker(markerX, true); });
 }
@@ -712,7 +762,7 @@ addEventListener('resize', () => { if($('reviewScreen').style.display === 'flex'
 
 $('btnBack').addEventListener('click', () => {
   $('reviewScreen').style.display = 'none';
-  $('mainScreen').style.display = 'flex';
+  if(cameraOn) video.play().catch(()=>{});
   setStatus('Rakaman masih dalam memori. Tekan MULA untuk larian baharu.');
 });
 
@@ -721,12 +771,12 @@ $('btnDelete').addEventListener('click', () => {
   marks = []; resetStrip();
   $('clock').textContent = '0.000';
   $('reviewScreen').style.display = 'none';
-  $('mainScreen').style.display = 'flex';
+  if(cameraOn) video.play().catch(()=>{});
   setStatus('Rakaman dibuang. Sedia untuk larian baharu.');
 });
 
-/* ---- simpan PNG dengan semua tanda dibakar ke dalam imej ---- */
-$('btnSave').addEventListener('click', () => {
+/* ---- imej akhir: semua tanda dibakar ke dalam PNG ---- */
+function buildExportCanvas(){
   const ex = document.createElement('canvas');
   ex.width = photo.width; ex.height = photo.height;
   const c = ex.getContext('2d', {alpha:false});
@@ -745,17 +795,52 @@ $('btnSave').addEventListener('click', () => {
 
   marks.forEach((m, i) => stamp(m.x, '#' + (i+1) + ' ' + fmt(m.t), '#ff7ac6', '#ff7ac6', '#2a0018', 34 + (i % 4) * 26));
   if(!marks.length) stamp(markerX, fmt(timeAtX(markerX)), '#ffd54a', '#ffd54a', '#000', 34);
+  return ex;
+}
 
-  const d = new Date();
-  const two = n => String(n).padStart(2, '0');
-  const st = d.getFullYear() + two(d.getMonth()+1) + two(d.getDate()) + '_' + two(d.getHours()) + two(d.getMinutes()) + two(d.getSeconds());
+function exportName(){
+  const d = new Date(), two = n => String(n).padStart(2, '0');
+  const st = d.getFullYear() + two(d.getMonth()+1) + two(d.getDate()) + '_' +
+             two(d.getHours()) + two(d.getMinutes()) + two(d.getSeconds());
   const safe = (S.eventName || 'photofinish').replace(/[^\w\-]+/g, '_').slice(0, 40);
+  return safe + '_' + st + '.png';
+}
 
+function markSummary(){
+  if(!marks.length) return 'Masa: ' + fmt(timeAtX(markerX));
+  return marks.map((m, i) => '#' + (i+1) + ' — ' + fmt(m.t)).join('\n');
+}
+
+$('btnSave').addEventListener('click', () => {
   const a = document.createElement('a');
-  a.download = safe + '_' + st + '.png';
-  a.href = ex.toDataURL('image/png');
+  a.download = exportName();
+  a.href = buildExportCanvas().toDataURL('image/png');
   a.click();
   toast(marks.length ? marks.length + ' tanda disimpan' : 'Imej disimpan');
+});
+
+/* ---- kongsi terus ke Galeri / WhatsApp / Drive ---- */
+$('btnShare').addEventListener('click', () => {
+  const name = exportName();
+  buildExportCanvas().toBlob(async blob => {
+    if(!blob){ toast('Gagal menyediakan imej'); return; }
+    const file = new File([blob], name, { type:'image/png' });
+    const payload = {
+      files:[file],
+      title: S.eventName || 'Photo Finish',
+      text: (S.eventName ? S.eventName + '\n' : '') + markSummary()
+    };
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      try{ await navigator.share(payload); }
+      catch(e){ if(e.name !== 'AbortError') toast('Perkongsian dibatalkan'); }
+    }else{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.download = name; a.href = url; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast('Pelayar tidak sokong kongsi — imej dimuat turun');
+    }
+  }, 'image/png');
 });
 
 /* ---------------- Pelarasan pantas ---------------- */
@@ -799,7 +884,7 @@ async function closeSettings(){
   S.eventName = $('inEvent').value.trim();
   saveSettings();
 
-  if(camChanged) await startCamera();
+  if(camChanged || (lensChanged && !cameraOn)) await startCamera();
   else if(lensChanged) await applyZoomCapability();
 
   if(S.trigger === 'sound'){
@@ -849,7 +934,9 @@ async function requestWakeLock(){
   try{ if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
 }
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible' && mode === 'running') requestWakeLock();
+  if(document.visibilityState !== 'visible') return;
+  if(mode === 'running') requestWakeLock();
+  if(cameraOn && video.srcObject && video.paused) video.play().catch(()=>{});
 });
 
 /* ---------------- PWA ---------------- */
@@ -870,11 +957,11 @@ addEventListener('appinstalled', () => { $('btnInstall').style.display = 'none';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(() => { $('swState').textContent = 'Versi 3.0 — sedia digunakan tanpa internet.'; })
-      .catch(() => { $('swState').textContent = 'Versi 3.0 — mod luar talian tidak aktif.'; });
+      .then(() => { $('swState').textContent = 'Versi 3.1 — sedia digunakan tanpa internet.'; })
+      .catch(() => { $('swState').textContent = 'Versi 3.1 — mod luar talian tidak aktif.'; });
   });
 }else{
-  $('swState').textContent = 'Versi 3.0 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 3.1 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 /* ---------------- Mula ---------------- */
