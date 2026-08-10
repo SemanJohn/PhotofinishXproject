@@ -154,7 +154,7 @@
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
       </div>
     </div>
-    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v3.6</span></div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v3.8</span></div>
     <canvas id="livePreview" height="54"></canvas>
   </div>
 
@@ -241,6 +241,33 @@
     </div>
 
     <div class="field">
+      <div class="lab">Kadar frame kamera</div>
+      <select id="selFps">
+        <option value="0">Auto (biar pelayar pilih)</option>
+        <option value="60">60 fps</option>
+        <option value="120">120 fps</option>
+        <option value="240">240 fps</option>
+      </select>
+      <select id="selRes">
+        <option value="1280x720">1280 × 720</option>
+        <option value="960x540">960 × 540</option>
+        <option value="640x480">640 × 480</option>
+      </select>
+      <div class="hint" id="fpsHint">Kadar tinggi biasanya hanya wujud pada resolusi rendah.</div>
+      <button class="btn-ghost" id="btnProbe">🔍 KESAN KEUPAYAAN MAKS</button>
+      <div class="meter"><div class="hint" id="diag">Belum diuji.</div></div>
+    </div>
+
+    <div class="field">
+      <div class="lab">Kelajuan imbas</div>
+      <select id="selSpeedMode">
+        <option value="auto">Auto — padan dengan kadar frame kamera</option>
+        <option value="manual">Manual — guna slider di skrin utama</option>
+      </select>
+      <div class="hint">Mod auto menetapkan satu lajur bagi setiap frame, jadi tiada frame terbuang dan tiada blok teregang.</div>
+    </div>
+
+    <div class="field">
       <div class="lab">Arah pelari</div>
       <select id="selDir">
         <option value="left_to_right">Kiri ➔ Kanan</option>
@@ -280,7 +307,7 @@
 
     <button class="btn-ghost" id="btnInstall" style="display:none">⬇ PASANG KE SKRIN UTAMA</button>
     <button class="btn-primary" id="btnApply">SIMPAN & TUTUP</button>
-    <div class="hint" id="swState">Versi 3.6 — mod luar talian sedia.</div>
+    <div class="hint" id="swState">Versi 3.8 — mod luar talian sedia.</div>
   </div>
 </div>
 
@@ -311,7 +338,9 @@ const S = {
   trigger:'manual', threshold:45,
   slitPct:0.50, srcWidth:2, pxPerSec:240,
   eventName:'', stripH:360, maxW:20000,
-  startDelay:0, autoStop:0        // saat, diukur dari masa 0 (tembakan/MULA)
+  startDelay:0, autoStop:0,       // saat, diukur dari masa 0 (tembakan/MULA)
+  targetFps:0, resW:1280, resH:720, // 0 = biar pelayar pilih
+  speedMode:'auto', probed:false
 };
 
 let mode = 'idle';                 // idle | armed | running
@@ -373,15 +402,27 @@ async function startCamera(){
   }
   if(stream) stream.getTracks().forEach(t => t.stop());
 
-  const base = { width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:120, min:30} };
-  const want = S.deviceId ? Object.assign({deviceId:{exact:S.deviceId}}, base)
-                          : Object.assign({facingMode:'environment'}, base);
-  try{
-    stream = await navigator.mediaDevices.getUserMedia({ video: want, audio:false });
-  }catch(e){
-    try{ stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false }); }
-    catch(e2){ showBanner('Kamera tidak dapat dibuka: ' + e2.message); return; }
+  /* Kadar frame tinggi selalunya hanya wujud pada resolusi rendah, dan setiap
+     peranti menolak kekangan yang berbeza. Jadi kita cuba dari yang paling
+     ketat kepada paling longgar sehingga ada yang berjaya. */
+  const dev = S.deviceId ? { deviceId:{exact:S.deviceId} } : { facingMode:'environment' };
+  const fps = S.targetFps, attempts = [];
+  if(fps){
+    attempts.push({ ...dev, width:{exact:S.resW}, height:{exact:S.resH}, frameRate:{exact:fps} });
+    attempts.push({ ...dev, width:{ideal:S.resW}, height:{ideal:S.resH}, frameRate:{min:fps, ideal:fps} });
+    attempts.push({ ...dev, frameRate:{exact:fps} });
   }
+  attempts.push({ ...dev, width:{ideal:S.resW}, height:{ideal:S.resH}, frameRate:{ideal:fps || 120} });
+  attempts.push({ ...dev });
+  attempts.push({});
+
+  stream = null;
+  let lastErr = null;
+  for(const v of attempts){
+    try{ stream = await navigator.mediaDevices.getUserMedia({ video:v, audio:false }); break; }
+    catch(e){ lastErr = e; }
+  }
+  if(!stream){ showBanner('Kamera tidak dapat dibuka: ' + (lastErr && lastErr.message)); return; }
   video.srcObject = stream;
   videoTrack = stream.getVideoTracks()[0];
   cameraOn = true;
@@ -391,10 +432,24 @@ async function startCamera(){
   await listCameras();
 
   video.onloadedmetadata = () => {
-    const st = videoTrack.getSettings ? videoTrack.getSettings() : {};
+    const st  = videoTrack.getSettings ? videoTrack.getSettings() : {};
+    const cap = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+    const maxFps = cap.frameRate && cap.frameRate.max ? Math.round(cap.frameRate.max) : null;
     $('metaCam').textContent = 'Kamera: ' + (video.videoWidth || '?') + '×' + (video.videoHeight || '?') +
-                               (st.frameRate ? ' @' + Math.round(st.frameRate) + 'fps' : '');
+                               (st.frameRate ? ' @' + Math.round(st.frameRate) + 'fps' : '') +
+                               (maxFps ? ' (maks ' + maxFps + ')' : '');
+    $('fpsHint').textContent = maxFps
+      ? 'Kamera ini melaporkan maksimum ' + maxFps + ' fps pada resolusi semasa.'
+      : 'Peranti ini tidak melaporkan kadar frame maksimum.';
+    if(S.targetFps && st.frameRate && Math.round(st.frameRate) < S.targetFps){
+      toast('Hanya ' + Math.round(st.frameRate) + ' fps diperoleh — cuba resolusi lebih rendah');
+    }
     resetStrip();
+    if(!S.probed && !probing){
+      setTimeout(() => probeBest(true), 800);
+    }else{
+      measureFps(1200).then(applyAutoSpeed);
+    }
   };
 }
 
@@ -443,6 +498,97 @@ async function applyZoomCapability(){
     else if(S.lensMode === 'normal') z = Math.min(Math.max(1, cap.zoom.min), cap.zoom.max);
     await videoTrack.applyConstraints({ advanced:[{ zoom:z }] });
   }catch(e){}
+}
+
+/* ---------------- Pengesanan peranti & keupayaan ---------------- */
+function platformInfo(){
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const chromium = /Chrome|CriOS|Edg|OPR/.test(ua);
+  const firefox  = /Firefox|FxiOS/.test(ua);
+  let engine;
+  if(iOS)          engine = 'WebKit (iOS)';
+  else if(chromium)engine = 'Chromium';
+  else if(firefox) engine = 'Gecko';
+  else if(/Safari/.test(ua)) engine = 'WebKit';
+  else             engine = 'Tidak dikenali';
+  /* Pada iOS, semua pelayar terpaksa guna WebKit dan getUserMedia dihadkan
+     pada 60 fps — mod slo-mo 120/240 hanya terbuka kepada app kamera asli. */
+  return { iOS, engine, hardCap: iOS ? 60 : null };
+}
+
+function measureFps(ms){
+  return new Promise(resolve => {
+    const a = frameTotal, t0 = performance.now();
+    setTimeout(() => {
+      const dt = (performance.now() - t0) / 1000;
+      resolve(Math.round((frameTotal - a) / Math.max(dt, .001)));
+    }, ms || 1200);
+  });
+}
+
+/* Cuba gabungan resolusi + kadar frame dari yang terbaik ke bawah, guna
+   applyConstraints pada trek sedia ada supaya tiada permintaan izin baharu. */
+const COMBOS = [
+  [640,480,240], [1280,720,240],
+  [640,480,120], [960,540,120], [1280,720,120],
+  [1280,720,60], [960,540,60], [640,480,60]
+];
+
+let probing = false;
+async function probeBest(silent){
+  if(probing || !videoTrack || !videoTrack.applyConstraints) return;
+  probing = true;
+  const info = platformInfo();
+  if(!silent) toast('Menguji keupayaan kamera…');
+
+  let best = null;
+  for(const [w, h, f] of COMBOS){
+    if(info.hardCap && f > info.hardCap) continue;   // jangan buang masa pada iOS
+    try{
+      await videoTrack.applyConstraints({
+        width:{exact:w}, height:{exact:h}, frameRate:{exact:f}
+      });
+      const st  = videoTrack.getSettings();
+      const got = Math.round(st.frameRate || 0);
+      if(got >= f - 2){ best = { w, h, f: got }; break; }
+    }catch(e){ /* gabungan ditolak — cuba yang seterusnya */ }
+  }
+
+  if(!best){
+    $('diag').textContent = 'Peranti menolak semua gabungan ketat. Menggunakan tetapan auto pelayar.';
+    probing = false;
+    await startCamera();
+    return;
+  }
+
+  S.targetFps = best.f; S.resW = best.w; S.resH = best.h; S.probed = true;
+  $('selFps').value = String(best.f);
+  $('selRes').value = best.w + 'x' + best.h;
+
+  const measured = await measureFps(1200);
+  applyAutoSpeed(measured);
+  saveSettings();
+
+  $('diag').innerHTML =
+    'Enjin: <b>' + info.engine + '</b><br>' +
+    'Mod terbaik: <b>' + best.w + '×' + best.h + ' @' + best.f + ' fps</b><br>' +
+    'Diukur sebenar: <b>' + measured + ' fps</b> (≈' + (1000/Math.max(measured,1)).toFixed(1) + ' ms sekali frame)' +
+    (info.hardCap ? '<br>Nota: iOS menghadkan pelayar pada ' + info.hardCap + ' fps.' : '');
+
+  if(!silent) toast(best.w + '×' + best.h + ' @' + measured + ' fps');
+  probing = false;
+}
+
+/* Kelajuan imbas paling sesuai ialah satu lajur bagi setiap frame kamera.
+   Lebih tinggi hanya meregang frame jadi blok; lebih rendah membuang frame. */
+function applyAutoSpeed(measured){
+  if(S.speedMode !== 'auto' || !measured) return;
+  const v = Math.max(60, Math.min(600, Math.round(measured * S.srcWidth / 20) * 20));
+  S.pxPerSec = v;
+  $('slSpeed').value = v;
+  $('vSpeed').textContent = v + ' (auto)';
 }
 
 /* ---------------- Kanvas jalur ---------------- */
@@ -496,7 +642,7 @@ function captureFrame(now){
   lastX = x;
 }
 
-let fpsCount = 0, fpsMark = 0, lastTick = 0, pumpGen = 0;
+let fpsCount = 0, fpsMark = 0, lastTick = 0, pumpGen = 0, frameTotal = 0;
 
 /* Setiap rantaian frame diberi nombor generasi. Kalau rantaian lama tersekat
    (contohnya dialog asli menghentikan callback pada iOS), pengawas di bawah
@@ -505,6 +651,7 @@ function pump(gen){
   const tick = now => {
     if(gen !== pumpGen) return;
     lastTick = now;
+    frameTotal++;
     try{
       captureFrame(now);
       fpsCount++;
@@ -976,7 +1123,10 @@ $('slSlit').addEventListener('input', e => {
 $('slSrc').addEventListener('input', e => { S.srcWidth = +e.target.value; $('vSrc').textContent = S.srcWidth + ' px'; });
 $('slSpeed').addEventListener('input', e => {
   if(mode === 'running'){ e.target.value = S.pxPerSec; return; }
-  S.pxPerSec = +e.target.value; $('vSpeed').textContent = S.pxPerSec;
+  S.pxPerSec = +e.target.value;
+  S.speedMode = 'manual';
+  $('selSpeedMode').value = 'manual';
+  $('vSpeed').textContent = S.pxPerSec;
 });
 
 /* ---------------- Tetapan ---------------- */
@@ -990,6 +1140,8 @@ $('selTrig').addEventListener('change', e => {
   $('soundGroup').style.display = e.target.value === 'sound' ? 'flex' : 'none';
   if(e.target.value === 'sound') initMic();
 });
+$('btnProbe').addEventListener('click', () => probeBest(false));
+
 $('slThr').addEventListener('input', e => {
   S.threshold = +e.target.value;
   $('vThr').textContent = S.threshold + '%';
@@ -1006,6 +1158,11 @@ async function closeSettings(){
   S.direction = $('selDir').value;
   S.trigger   = $('selTrig').value;
   S.eventName = $('inEvent').value.trim();
+  const fpsChanged = (+$('selFps').value !== S.targetFps) || ($('selRes').value !== S.resW + 'x' + S.resH);
+  S.targetFps = +$('selFps').value;
+  const rr = $('selRes').value.split('x');
+  S.resW = +rr[0]; S.resH = +rr[1];
+  S.speedMode = $('selSpeedMode').value;
   S.startDelay = Math.max(0, parseFloat($('inDelay').value) || 0);
   S.autoStop   = Math.max(0, parseFloat($('inAuto').value)  || 0);
   if(S.autoStop > 0 && S.autoStop <= S.startDelay){
@@ -1015,7 +1172,7 @@ async function closeSettings(){
   paintRunButton();
   saveSettings();
 
-  if(camChanged || (lensChanged && !cameraOn)) await startCamera();
+  if(camChanged || fpsChanged || !cameraOn) await startCamera();
   else if(lensChanged) await applyZoomCapability();
 
   if(S.trigger === 'sound'){
@@ -1034,7 +1191,9 @@ function saveSettings(){
     deviceId:S.deviceId, lensMode:S.lensMode, direction:S.direction,
     trigger:S.trigger, threshold:S.threshold, slitPct:S.slitPct,
     srcWidth:S.srcWidth, pxPerSec:S.pxPerSec, eventName:S.eventName,
-    startDelay:S.startDelay, autoStop:S.autoStop
+    startDelay:S.startDelay, autoStop:S.autoStop,
+    targetFps:S.targetFps, resW:S.resW, resH:S.resH,
+    speedMode:S.speedMode, probed:S.probed
   })); }catch(e){}
 }
 function loadSettings(){
@@ -1044,6 +1203,9 @@ function loadSettings(){
     Object.assign(S, JSON.parse(raw));
   }catch(e){}
   $('inEvent').value = S.eventName || '';
+  $('selFps').value = String(S.targetFps || 0);
+  $('selRes').value = S.resW + 'x' + S.resH;
+  $('selSpeedMode').value = S.speedMode || 'auto';
   $('inDelay').value = S.startDelay || 0;
   $('inAuto').value  = S.autoStop || 0;
   $('selLens').value = S.lensMode;
@@ -1089,11 +1251,11 @@ addEventListener('appinstalled', () => { $('btnInstall').style.display = 'none';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(() => { $('swState').textContent = 'Versi 3.6 — sedia digunakan tanpa internet.'; })
-      .catch(() => { $('swState').textContent = 'Versi 3.6 — mod luar talian tidak aktif.'; });
+      .then(() => { $('swState').textContent = 'Versi 3.8 — sedia digunakan tanpa internet.'; })
+      .catch(() => { $('swState').textContent = 'Versi 3.8 — mod luar talian tidak aktif.'; });
   });
 }else{
-  $('swState').textContent = 'Versi 3.6 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 3.8 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 /* ---------------- Mula ---------------- */
