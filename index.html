@@ -154,7 +154,7 @@
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
       </div>
     </div>
-    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v3.8</span></div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.0</span></div>
     <canvas id="livePreview" height="54"></canvas>
   </div>
 
@@ -307,6 +307,7 @@
 
     <button class="btn-ghost" id="btnInstall" style="display:none">⬇ PASANG KE SKRIN UTAMA</button>
     <button class="btn-primary" id="btnApply">SIMPAN & TUTUP</button>
+    <button class="btn-ghost" id="btnUpdate">⟳ SEMAK KEMAS KINI</button>
     <div class="hint" id="swState">Versi 3.8 — mod luar talian sedia.</div>
   </div>
 </div>
@@ -1248,15 +1249,84 @@ $('btnInstall').addEventListener('click', async () => {
 });
 addEventListener('appinstalled', () => { $('btnInstall').style.display = 'none'; toast('Dipasang ke skrin utama'); });
 
+/* ---- Kemas kini automatik dari GitHub ----
+   Halaman menyemak versi baharu semasa dibuka, setiap minit, setiap kali
+   dibawa ke hadapan, dan bila talian pulih. Versi baharu hanya dipasang
+   bila selamat: tiada rakaman berjalan dan tiada imej sedang disemak. */
+let swReg = null, pendingWorker = null, reloading = false;
+
+function updateSafe(){
+  return mode === 'idle' && $('reviewScreen').style.display !== 'flex';
+}
+
+function applyUpdate(){
+  if(!pendingWorker || reloading) return;
+  reloading = true;
+  $('swState').textContent = 'Memasang kemas kini…';
+  pendingWorker.postMessage('skipWaiting');
+}
+
+function offerUpdate(worker){
+  pendingWorker = worker;
+  if(updateSafe()){
+    applyUpdate();
+  }else{
+    $('swState').textContent = 'Kemas kini sedia — akan dipasang selepas kerja semasa selesai.';
+    $('btnUpdate').style.display = 'block';
+    toast('Kemas kini tersedia');
+  }
+}
+
+function watchWorker(reg){
+  if(reg.waiting && navigator.serviceWorker.controller){ offerUpdate(reg.waiting); }
+  reg.addEventListener('updatefound', () => {
+    const w = reg.installing;
+    if(!w) return;
+    w.addEventListener('statechange', () => {
+      if(w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w);
+    });
+  });
+}
+
+function checkUpdate(manual){
+  if(!swReg){ if(manual) toast('Mod luar talian tidak aktif'); return; }
+  swReg.update()
+    .then(() => { if(manual && !pendingWorker) toast('Sudah versi terkini'); })
+    .catch(() => { if(manual) toast('Tiada talian untuk menyemak'); });
+}
+
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(!reloading) return;      // elak muat semula berulang
+    location.reload();
+  });
+
   addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(() => { $('swState').textContent = 'Versi 3.8 — sedia digunakan tanpa internet.'; })
-      .catch(() => { $('swState').textContent = 'Versi 3.8 — mod luar talian tidak aktif.'; });
+      .then(reg => {
+        swReg = reg;
+        watchWorker(reg);
+        $('swState').textContent = 'Versi 4.0 — sedia digunakan tanpa internet.';
+        setInterval(() => {
+          checkUpdate(false);
+          if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
+        }, 60000);
+      })
+      .catch(() => { $('swState').textContent = 'Versi 4.0 — mod luar talian tidak aktif.'; });
+  });
+
+  addEventListener('online', () => checkUpdate(false));
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 3.8 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 4.0 — hos melalui HTTPS untuk mod luar talian.';
 }
+
+$('btnUpdate').addEventListener('click', () => {
+  if(pendingWorker) applyUpdate();
+  else checkUpdate(true);
+});
 
 /* ---------------- Mula ---------------- */
 function boot(){
