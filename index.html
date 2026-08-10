@@ -427,6 +427,15 @@ const photo   = $('photoCanvas');
 const scroller= $('scroller'), wrap = $('wrap'), marker = $('marker'), marksLayer = $('marksLayer');
 
 /* ---------------- Utiliti ---------------- */
+/* Malaysia guna AM/PM dalam kegunaan harian; locale ms-MY memberi PG/PTG. */
+function stampText(ts){
+  const d = new Date(ts), two = n => String(n).padStart(2, '0');
+  const ap = d.getHours() < 12 ? 'AM' : 'PM';
+  const h  = d.getHours() % 12 || 12;
+  return two(d.getDate()) + '/' + two(d.getMonth()+1) + '/' + d.getFullYear() +
+         ', ' + h + ':' + two(d.getMinutes()) + ':' + two(d.getSeconds()) + ' ' + ap;
+}
+
 function fmt(ms){
   if(!isFinite(ms) || ms < 0) ms = 0;
   const s = ms/1000;
@@ -1165,7 +1174,7 @@ function drawScale(c, W, H, pps, t0, event, ts, flip){
     c.textAlign = 'left';
     c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(0, 0, Math.min(W, 460), 20);
     c.fillStyle = '#e6edf3';
-    c.fillText(event + '  •  ' + new Date(ts).toLocaleString('ms-MY'), 6, 14);
+    c.fillText(event + '  •  ' + stampText(ts), 6, 14);
   }
 }
 
@@ -1722,13 +1731,13 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       .then(reg => {
         swReg = reg;
         watchWorker(reg);
-        $('swState').textContent = 'Versi 5.0 — sedia digunakan tanpa internet.';
+        $('swState').textContent = 'Versi 5.1 — sedia digunakan tanpa internet.';
         setInterval(() => {
           checkUpdate(false);
           if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
         }, 60000);
       })
-      .catch(() => { $('swState').textContent = 'Versi 5.0 — mod luar talian tidak aktif.'; });
+      .catch(() => { $('swState').textContent = 'Versi 5.1 — mod luar talian tidak aktif.'; });
   });
 
   addEventListener('online', () => checkUpdate(false));
@@ -1736,7 +1745,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 5.0 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 5.1 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 $('btnUpdate').addEventListener('click', () => {
@@ -1895,7 +1904,7 @@ async function showRuns(){
       info.className = 'run-info';
       info.innerHTML =
         '<div class="run-title">' + (r.event || 'Tanpa nama acara') + '</div>' +
-        '<div class="run-sub">' + new Date(r.ts).toLocaleString('ms-MY') + '</div>' +
+        '<div class="run-sub">' + stampText(r.ts) + '</div>' +
         '<div class="run-sub">' + dur.toFixed(1) + ' s · ' +
         (r.marks ? r.marks.length : 0) + ' tanda · ' + r.pps + ' px/s</div>';
 
@@ -1925,7 +1934,7 @@ async function showRuns(){
   if(navigator.storage && navigator.storage.estimate){
     try{
       const q = await navigator.storage.estimate();
-      const mb = n => (n / 1048576).toFixed(1) + ' MB';
+      const mb = n => n >= 1073741824 ? (n / 1073741824).toFixed(1) + ' GB' : (n / 1048576).toFixed(1) + ' MB';
       $('runsQuota').textContent = all.length + ' rekod · guna ' + mb(q.usage || 0) +
         ' daripada ' + mb(q.quota || 0) + ' (had ' + MAX_RUNS + ' rekod)';
     }catch(e){ $('runsQuota').textContent = all.length + ' rekod tersimpan.'; }
