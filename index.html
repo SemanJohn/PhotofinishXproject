@@ -178,7 +178,7 @@
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
       </div>
     </div>
-    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.9</span></div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span id="metaFps">FPS: —</span></div>
     <div class="lockbar">
       <button id="btnLock">🔓 KUNCI FOKUS & CAHAYA</button>
       <button id="btnRuns">🗂 REKOD</button>
@@ -1292,8 +1292,12 @@ addEventListener('resize', () => { if($('reviewScreen').style.display === 'flex'
 
 $('btnBack').addEventListener('click', () => {
   $('reviewScreen').style.display = 'none';
+  /* Kembali ke keadaan asal — rakaman sudah tersimpan dalam rekod, jadi
+     jam dan jalur pratonton dikosongkan supaya tidak keliru dengan larian baharu. */
+  $('clock').textContent = '0.000';
+  pctx.fillStyle = '#000'; pctx.fillRect(0, 0, preview.width, preview.height);
   if(cameraOn){ video.play().catch(()=>{}); restartPump(); }
-  setStatus('Rakaman masih dalam memori. Tekan MULA untuk larian baharu.');
+  setStatus('Tersimpan dalam rekod. Tekan MULA untuk larian baharu.');
 });
 
 /* confirm() asli menghentikan requestVideoFrameCallback pada iOS dan
@@ -1718,13 +1722,13 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       .then(reg => {
         swReg = reg;
         watchWorker(reg);
-        $('swState').textContent = 'Versi 4.9 — sedia digunakan tanpa internet.';
+        $('swState').textContent = 'Versi 5.0 — sedia digunakan tanpa internet.';
         setInterval(() => {
           checkUpdate(false);
           if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
         }, 60000);
       })
-      .catch(() => { $('swState').textContent = 'Versi 4.9 — mod luar talian tidak aktif.'; });
+      .catch(() => { $('swState').textContent = 'Versi 5.0 — mod luar talian tidak aktif.'; });
   });
 
   addEventListener('online', () => checkUpdate(false));
@@ -1732,7 +1736,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 4.9 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 5.0 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 $('btnUpdate').addEventListener('click', () => {
