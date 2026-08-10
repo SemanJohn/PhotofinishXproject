@@ -245,7 +245,7 @@
         <option value="left_to_right">Kiri ➔ Kanan</option>
         <option value="right_to_left">Kanan ➔ Kiri</option>
       </select>
-      <div class="hint">Membetulkan orientasi imej jalur supaya pelari tidak kelihatan terbalik.</div>
+      <div class="hint">Pilih arah sebenar pelari dilihat pada skrin kamera. Sistem akan menyusun jalur supaya pelari kelihatan sama seperti paparan kamera, bukan tercermin.</div>
     </div>
 
     <div class="field">
@@ -268,7 +268,7 @@
 
     <button class="btn-ghost" id="btnInstall" style="display:none">⬇ PASANG KE SKRIN UTAMA</button>
     <button class="btn-primary" id="btnApply">SIMPAN & TUTUP</button>
-    <div class="hint" id="swState">Versi 3.1 — mod luar talian sedia.</div>
+    <div class="hint" id="swState">Versi 3.2 — mod luar talian sedia.</div>
   </div>
 </div>
 
@@ -489,7 +489,10 @@ function uiLoop(){
     if(lastX > 0){
       const shown = Math.min(lastX, 900);
       pctx.fillStyle = '#000'; pctx.fillRect(0, 0, preview.width, preview.height);
+      pctx.save();
+      if(isFlipped()){ pctx.translate(preview.width, 0); pctx.scale(-1, 1); }
       pctx.drawImage(strip, lastX - shown, 0, shown, strip.height, 0, 0, preview.width, preview.height);
+      pctx.restore();
     }
   }
   requestAnimationFrame(uiLoop);
@@ -589,9 +592,15 @@ function pollMic(){
 }
 
 /* ---------------- Skrin semakan ---------------- */
+/* Dalam slit-scan, bahagian badan yang melintas dahulu terletak di kiri imej.
+   Pelari yang bergerak KIRI ➔ KANAN menghadap ke kanan, jadi dadanya melintas
+   dahulu dan imej akan kelihatan tercermin melainkan jalur dibalikkan.
+   Pelari KANAN ➔ KIRI pula sudah betul tanpa pembalikan. */
+const isFlipped = () => S.direction === 'left_to_right';
+
 function timeAtX(xDisp){
   const W = photo.width;
-  const xt = (S.direction === 'right_to_left') ? (W - 1 - xDisp) : xDisp;
+  const xt = isFlipped() ? (W - 1 - xDisp) : xDisp;
   return xt / S.pxPerSec * 1000;
 }
 
@@ -602,7 +611,7 @@ function buildReview(){
   c.imageSmoothingEnabled = false;
   c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
 
-  if(S.direction === 'right_to_left'){
+  if(isFlipped()){
     c.save(); c.translate(W, 0); c.scale(-1, 1);
     c.drawImage(strip, 0, 0, W, H, 0, 0, W, H);
     c.restore();
@@ -624,7 +633,7 @@ function buildReview(){
 }
 
 function drawScale(c, W, H){
-  const pps = S.pxPerSec, flip = S.direction === 'right_to_left';
+  const pps = S.pxPerSec, flip = isFlipped();
   c.font = '600 11px ui-monospace, monospace';
   c.textAlign = 'center';
   for(let t = 0; t <= W / pps; t += 0.1){
@@ -957,11 +966,11 @@ addEventListener('appinstalled', () => { $('btnInstall').style.display = 'none';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(() => { $('swState').textContent = 'Versi 3.1 — sedia digunakan tanpa internet.'; })
-      .catch(() => { $('swState').textContent = 'Versi 3.1 — mod luar talian tidak aktif.'; });
+      .then(() => { $('swState').textContent = 'Versi 3.2 — sedia digunakan tanpa internet.'; })
+      .catch(() => { $('swState').textContent = 'Versi 3.2 — mod luar talian tidak aktif.'; });
   });
 }else{
-  $('swState').textContent = 'Versi 3.1 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 3.2 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 /* ---------------- Mula ---------------- */
