@@ -3,108 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Photo Finish Realtime</title>
+    <title>Sistem Photo Finish Olahraga</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        html, body { width: 100%; height: 100dvh; height: 100vh; overflow: hidden; background-color: #121212; color: #ffffff; display: flex; flex-direction: column; }
-        
-        /* Header Tajuk & Jam */
-        header { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #1e1e1e; border-bottom: 1px solid #333; height: 46px; flex-shrink: 0; }
-        .app-title { font-size: 0.9rem; font-weight: bold; color: #00ffcc; white-space: nowrap; }
-        .timer-display { font-size: 1.3rem; font-family: monospace; font-weight: bold; color: #00ffcc; background: #000; padding: 2px 8px; border-radius: 4px; border: 1px solid #00ffcc; }
+        html, body { width: 100%; height: 100dvh; height: 100vh; overflow: hidden; background-color: #121212; color: #ffffff; }
 
-        /* Kawasan Utama (Kamera + Canvas) */
-        main { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 4px; overflow: hidden; }
+        /* 1. SKRIN UTAMA (MAIN PAGE) */
+        #mainScreen { display: flex; flex-direction: column; height: 100%; width: 100%; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1e1e1e; border-bottom: 1px solid #333; height: 50px; flex-shrink: 0; }
+        .app-title { font-size: 0.95rem; font-weight: bold; color: #00ffcc; }
+        .timer-display { font-size: 1.4rem; font-family: monospace; font-weight: bold; color: #00ffcc; background: #000; padding: 2px 10px; border-radius: 4px; border: 1px solid #00ffcc; }
 
-        /* Kotak Kamera Pratonton */
-        .video-box { position: relative; width: 100%; height: 30vh; background: #000; border-radius: 6px; overflow: hidden; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        .main-body { flex: 1; display: flex; flex-direction: column; padding: 8px; gap: 8px; overflow: hidden; justify-content: center; }
+        .video-box { position: relative; width: 100%; flex: 1; max-height: 65vh; background: #000; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; border: 2px solid #333; }
         video { width: 100%; height: 100%; object-fit: contain; }
         .finish-line-overlay { position: absolute; top: 0; bottom: 0; width: 2px; background-color: red; z-index: 10; }
 
-        /* Bar Info Semakan Masa */
-        .inspector-bar { font-size: 0.8rem; color: #aaa; text-align: center; background: #1a1a1a; padding: 4px; border-radius: 4px; flex-shrink: 0; border: 1px solid #333; }
-        .inspector-bar span { color: #ffeb3b; font-weight: bold; font-family: monospace; font-size: 0.95rem; }
-
-        /* Kanvas Gambar Photo Finish */
-        .canvas-container { flex: 1; width: 100%; background: #000; border: 1.5px solid #00ffcc; border-radius: 6px; overflow-x: auto; overflow-y: hidden; position: relative; }
-        canvas { display: block; height: 100%; background: #111; cursor: crosshair; }
-
-        /* Panel Butang Utama */
-        footer { background: #1e1e1e; padding: 6px 8px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
-        .button-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr 0.8fr; gap: 6px; }
-        button { padding: 9px 2px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.75rem; text-align: center; }
+        .main-controls { background: #1e1e1e; padding: 12px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+        .start-stop-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-large { padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; }
         .btn-start { background-color: #28a745; color: white; }
         .btn-stop { background-color: #dc3545; color: white; }
-        .btn-inspect { background-color: #ffc107; color: black; }
-        .btn-save { background-color: #17a2b8; color: white; }
 
-        .slider-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.7rem; color: #ccc; }
-        .slider-group { display: flex; align-items: center; gap: 4px; flex: 1; }
-        input[type="range"] { width: 100%; accent-color: #00ffcc; height: 16px; }
+        .slider-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.75rem; color: #ccc; }
+        .slider-group { display: flex; align-items: center; gap: 6px; flex: 1; }
+        input[type="range"] { width: 100%; accent-color: #00ffcc; height: 18px; }
+
+        /* 2. SKRIN SEMAKAN (REVIEW SCREEN) */
+        #reviewScreen { display: none; flex-direction: column; height: 100%; width: 100%; background: #121212; position: absolute; top: 0; left: 0; z-index: 100; }
+        .review-header { background: #1e1e1e; padding: 10px 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; height: 55px; flex-shrink: 0; }
+        .review-title { font-size: 0.85rem; color: #aaa; }
+        .time-badge { font-size: 1.3rem; font-family: monospace; font-weight: bold; color: #ffeb3b; background: #000; padding: 3px 10px; border-radius: 4px; border: 1px solid #ffeb3b; }
+
+        .review-body { flex: 1; display: flex; flex-direction: column; padding: 8px; gap: 8px; overflow: hidden; }
+        .canvas-container { flex: 1; width: 100%; background: #000; border: 1.5px solid #00ffcc; border-radius: 8px; overflow-x: auto; overflow-y: hidden; position: relative; }
+        canvas { display: block; height: 100%; background: #111; }
+
+        .marker-control-box { background: #1e1e1e; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; border: 1px solid #333; }
+        .marker-control-label { font-size: 0.8rem; color: #ffeb3b; font-weight: bold; display: flex; justify-content: space-between; }
+
+        .review-actions { padding: 10px 8px; background: #1e1e1e; border-top: 1px solid #333; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; flex-shrink: 0; }
+        .btn-action { padding: 12px 4px; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; text-align: center; }
+        .btn-back { background-color: #6c757d; color: white; }
+        .btn-delete { background-color: #dc3545; color: white; }
+        .btn-save-final { background-color: #28a745; color: white; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="app-title">PHOTO FINISH</div>
-        <div class="timer-display" id="timerDisplay">00:00.000</div>
-    </header>
+    <!-- 1. SKRIN UTAMA (MAIN PAGE) -->
+    <div id="mainScreen">
+        <header>
+            <div class="app-title">PHOTO FINISH</div>
+            <div class="timer-display" id="timerDisplay">00:00.000</div>
+        </header>
 
-    <main>
-        <!-- Kamera Pratonton -->
-        <div class="video-box">
-            <video id="webcam" autoplay playsinline muted></video>
-            <div class="finish-line-overlay" id="finishLine" style="left: 50%;"></div>
-        </div>
-
-        <!-- Bar Keputusan Semakan Masa -->
-        <div class="inspector-bar">
-            Masa Pelari: <span id="inspectTime">--:--.---</span>
-        </div>
-
-        <!-- Kanvas Photo Finish -->
-        <div class="canvas-container" id="canvasScroll">
-            <canvas id="photoCanvas" height="300" width="3000"></canvas>
-        </div>
-    </main>
-
-    <footer>
-        <div class="button-row">
-            <button class="btn-start" id="btnStart">▶ START</button>
-            <button class="btn-stop" id="btnStop">⏹ STOP</button>
-            <button class="btn-inspect" id="btnInspect">🔍 SEMAK SLICE</button>
-            <button class="btn-save" id="btnSave">💾 SIMPAN</button>
-        </div>
-
-        <div class="slider-row">
-            <div class="slider-group">
-                <label>Garisan:</label>
-                <input type="range" id="slitPosSlider" min="0" max="100" value="50">
-            </div>
-            <div class="slider-group" style="max-width: 110px;">
-                <label>Slice:</label>
-                <input type="range" id="sliceWidthSlider" min="1" max="5" value="2">
-                <span id="sliceWidthVal">2px</span>
+        <div class="main-body">
+            <div class="video-box">
+                <video id="webcam" autoplay playsinline muted></video>
+                <div class="finish-line-overlay" id="finishLine" style="left: 50%;"></div>
             </div>
         </div>
-    </footer>
+
+        <div class="main-controls">
+            <div class="start-stop-row">
+                <button class="btn-large btn-start" id="btnStart">▶ MULA</button>
+                <button class="btn-large btn-stop" id="btnStop">⏹ STOP</button>
+            </div>
+            <div class="slider-row">
+                <div class="slider-group">
+                    <label>Garisan:</label>
+                    <input type="range" id="slitPosSlider" min="0" max="100" value="50">
+                </div>
+                <div class="slider-group" style="max-width: 110px;">
+                    <label>Slice:</label>
+                    <input type="range" id="sliceWidthSlider" min="1" max="5" value="2">
+                    <span id="sliceWidthVal">2px</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. SKRIN SEMAK GAMBAR SLICE (REVIEW PAGE) -->
+    <div id="reviewScreen">
+        <div class="review-header">
+            <div class="review-title">MASA PELARI:</div>
+            <div class="time-badge" id="inspectTimeBadge">00:00.000</div>
+        </div>
+
+        <div class="review-body">
+            <!-- Canvas Gambar Slice -->
+            <div class="canvas-container" id="canvasScroll">
+                <canvas id="photoCanvas" height="400" width="3000"></canvas>
+            </div>
+
+            <!-- Slider Garisan Penanda Masa -->
+            <div class="marker-control-box">
+                <div class="marker-control-label">
+                    <span>↔ Gerakkan Garisan Masa Pelari:</span>
+                    <span id="markerPosPercent">0%</span>
+                </div>
+                <input type="range" id="markerSlider" min="0" max="1000" value="0">
+            </div>
+        </div>
+
+        <!-- Butang Tindakan -->
+        <div class="review-actions">
+            <button class="btn-action btn-back" id="btnBack">⬅ BACK</button>
+            <button class="btn-action btn-delete" id="btnDelete">🗑 BUANG</button>
+            <button class="btn-action btn-save-final" id="btnSaveFinal">💾 SIMPAN</button>
+        </div>
+    </div>
 
 <script>
+    // Elemen Skrin
+    const mainScreen = document.getElementById('mainScreen');
+    const reviewScreen = document.getElementById('reviewScreen');
+
+    // Elemen Kamera & Timer
     const video = document.getElementById('webcam');
     const finishLine = document.getElementById('finishLine');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const inspectTimeBadge = document.getElementById('inspectTimeBadge');
+
+    // Canvas
     const photoCanvas = document.getElementById('photoCanvas');
     const ctx = photoCanvas.getContext('2d');
-    const timerDisplay = document.getElementById('timerDisplay');
-    const inspectTime = document.getElementById('inspectTime');
-    
+    const canvasScroll = document.getElementById('canvasScroll');
+
+    // Controls
     const btnStart = document.getElementById('btnStart');
     const btnStop = document.getElementById('btnStop');
-    const btnInspect = document.getElementById('btnInspect');
-    const btnSave = document.getElementById('btnSave');
+    const btnBack = document.getElementById('btnBack');
+    const btnDelete = document.getElementById('btnDelete');
+    const btnSaveFinal = document.getElementById('btnSaveFinal');
+
     const slitPosSlider = document.getElementById('slitPosSlider');
     const sliceWidthSlider = document.getElementById('sliceWidthSlider');
     const sliceWidthVal = document.getElementById('sliceWidthVal');
-    const canvasScroll = document.getElementById('canvasScroll');
+    const markerSlider = document.getElementById('markerSlider');
+    const markerPosPercent = document.getElementById('markerPosPercent');
 
     let isScanning = false;
     let startTime = null;
@@ -112,10 +150,12 @@
     let currentX = 0;
     let sliceWidth = parseInt(sliceWidthSlider.value);
     let slitPercent = 0.5;
-    
-    let timeAtPixel = [];
-    let rawCanvasData = null; // Menyimpan salinan asal imej untuk garisan semakan
 
+    let timeAtPixel = [];
+    let rawCanvasData = null; // Salinan asal canvas tanpa garisan penanda
+    let activeMarkerX = 0;
+
+    // Inisialisasi Kamera
     async function initCamera() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -147,41 +187,86 @@
         sliceWidthVal.innerText = `${sliceWidth}px`;
     });
 
-    // 1. BUTANG START
+    // 1. MULA LARIAN (START)
     btnStart.addEventListener('click', () => {
         isScanning = true;
         startTime = performance.now();
         currentX = 0;
         timeAtPixel = [];
         clearCanvas();
-        
+
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(updateTimerDisplay, 10);
-        inspectTime.innerText = "Larian Sedang Berlangsung...";
     });
 
-    // 2. BUTANG STOP
+    // 2. TEKAN STOP -> AUTOMATIK KE SKRIN SEMAK GAMBAR SLICE
     btnStop.addEventListener('click', () => {
         isScanning = false;
         if (timerInterval) {
             clearInterval(timerInterval);
             timerInterval = null;
         }
-        inspectTime.innerText = "Larian Diberhentikan. Tekan 'SEMAK SLICE' untuk menyemak masa.";
+
+        if (currentX === 0) {
+            alert("Tiada gambar dirakam lagi. Tekan MULA dahulu.");
+            return;
+        }
+
+        // Simpan gambar asal canvas
         saveCanvasState();
+
+        // Sediakan Slider Garisan Penanda
+        markerSlider.min = 0;
+        markerSlider.max = Math.max(currentX - 1, 0);
+        markerSlider.value = Math.floor(currentX / 2);
+        
+        // Kemas kini garisan penanda
+        updateMarkerPosition(parseInt(markerSlider.value));
+
+        // Tunjuk Skrin Semakan (Review Screen)
+        mainScreen.style.display = 'none';
+        reviewScreen.style.display = 'flex';
     });
 
-    // 3. BUTANG SEMAK SLICE
-    btnInspect.addEventListener('click', () => {
-        isScanning = false;
-        if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-        }
-        saveCanvasState();
-        inspectTime.innerText = "Sentuh pada gambar di bawah untuk semak masa pelari";
-        canvasScroll.scrollLeft = 0;
+    // 3. SKRIN SEMAKAN: GERAKKAN GARISAN MASA (SLIDER)
+    markerSlider.addEventListener('input', (e) => {
+        const targetX = parseInt(e.target.value);
+        updateMarkerPosition(targetX);
     });
+
+    // Boleh juga sentuh terus pada canvas untuk alihkan garisan penanda
+    photoCanvas.addEventListener('click', (e) => {
+        const rect = photoCanvas.getBoundingClientRect();
+        const clickX = Math.floor(e.clientX - rect.left);
+        markerSlider.value = clickX;
+        updateMarkerPosition(clickX);
+    });
+
+    function updateMarkerPosition(x) {
+        if (x < 0 || x >= currentX) return;
+        activeMarkerX = x;
+
+        // Pulihkan canvas asal
+        restoreCanvasState();
+
+        // Lukis Garisan Penanda Masa (Kuning Terang)
+        ctx.strokeStyle = '#ffeb3b';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, photoCanvas.height);
+        ctx.stroke();
+
+        // Kemas kini paparan masa
+        const recordedTime = timeAtPixel[x] || 0;
+        inspectTimeBadge.innerText = formatTime(recordedTime);
+        
+        const pct = Math.round((x / currentX) * 100);
+        markerPosPercent.innerText = `${pct}%`;
+
+        // Auto-scroll supaya garisan penanda sentiasa nampak
+        canvasScroll.scrollLeft = x - (canvasScroll.clientWidth / 2);
+    }
 
     function saveCanvasState() {
         rawCanvasData = ctx.getImageData(0, 0, photoCanvas.width, photoCanvas.height);
@@ -192,6 +277,42 @@
             ctx.putImageData(rawCanvasData, 0, 0);
         }
     }
+
+    // 4. BUTANG BACK (KEMBALI KE SKRIN UTAMA)
+    btnBack.addEventListener('click', () => {
+        reviewScreen.style.display = 'none';
+        mainScreen.style.display = 'flex';
+    });
+
+    // 5. BUTANG BUANG (DELETE & AUTO KEMBALI KE SKRIN UTAMA)
+    btnDelete.addEventListener('click', () => {
+        clearCanvas();
+        timerDisplay.innerText = "00:00.000";
+        reviewScreen.style.display = 'none';
+        mainScreen.style.display = 'flex';
+    });
+
+    // 6. BUTANG SIMPAN (SAVE IMAGE & AUTO KEMBALI KE SKRIN UTAMA)
+    btnSaveFinal.addEventListener('click', () => {
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = Math.max(currentX, 100);
+        exportCanvas.height = photoCanvas.height;
+        const exportCtx = exportCanvas.getContext('2d');
+        
+        // Lukiskan canvas semasa bersama garisan penanda kuning
+        exportCtx.drawImage(photoCanvas, 0, 0, exportCanvas.width, exportCanvas.height, 0, 0, exportCanvas.width, exportCanvas.height);
+
+        const link = document.createElement('a');
+        link.download = `photo_finish_${Date.now()}.png`;
+        link.href = exportCanvas.toDataURL('image/png');
+        link.click();
+
+        // Kembalikan ke Skrin Utama
+        clearCanvas();
+        timerDisplay.innerText = "00:00.000";
+        reviewScreen.style.display = 'none';
+        mainScreen.style.display = 'flex';
+    });
 
     function updateTimerDisplay() {
         if (!startTime) return;
@@ -242,7 +363,6 @@
             }
 
             currentX += sliceWidth;
-            canvasScroll.scrollLeft = currentX;
         }
 
         requestAnimationFrame(processFrame);
@@ -269,42 +389,6 @@
             ctx.fillText(`${Math.floor(sec)}s`, x + 2, photoCanvas.height - 5);
         }
     }
-
-    // Klik/Sentuh Gambar Slice
-    photoCanvas.addEventListener('click', (e) => {
-        const rect = photoCanvas.getBoundingClientRect();
-        const clickX = Math.floor(e.clientX - rect.left);
-        
-        if (timeAtPixel[clickX] !== undefined) {
-            restoreCanvasState();
-
-            // Lukis garisan penanda kuning di lokasi sentuhan
-            ctx.strokeStyle = '#ffeb3b';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(clickX, 0);
-            ctx.lineTo(clickX, photoCanvas.height);
-            ctx.stroke();
-
-            inspectTime.innerText = `${formatTime(timeAtPixel[clickX])}`;
-        } else {
-            inspectTime.innerText = "Tiada rekod masa pada titik ini";
-        }
-    });
-
-    // Butang Simpan
-    btnSave.addEventListener('click', () => {
-        const exportCanvas = document.createElement('canvas');
-        exportCanvas.width = Math.max(currentX, 100);
-        exportCanvas.height = photoCanvas.height;
-        const exportCtx = exportCanvas.getContext('2d');
-        exportCtx.drawImage(photoCanvas, 0, 0, exportCanvas.width, exportCanvas.height, 0, 0, exportCanvas.width, exportCanvas.height);
-
-        const link = document.createElement('a');
-        link.download = `photo_finish_${Date.now()}.png`;
-        link.href = exportCanvas.toDataURL('image/png');
-        link.click();
-    });
 
     initCamera();
     requestAnimationFrame(processFrame);
