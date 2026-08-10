@@ -94,7 +94,8 @@
 
   .rev-actions{padding:8px calc(8px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));
     background:var(--panel);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;flex-shrink:0}
-  .act-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+  .act-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .b-mirror{background:#8957e5}
   .act-row.b{grid-template-columns:repeat(4,1fr)}
   .b-share{background:#1f6feb}
   .btn-act{padding:13px 4px;border:none;border-radius:8px;font-weight:800;font-size:.82rem;color:#fff;cursor:pointer}
@@ -199,6 +200,7 @@
   <div class="rev-actions">
     <div class="act-row">
       <button class="btn-act b-mark" id="btnMark">✚ TANDA</button>
+      <button class="btn-act b-mirror" id="btnMirror">⇄ CERMIN</button>
       <button class="btn-act b-undo" id="btnUndo">↩ UNDO</button>
       <button class="btn-act b-clear" id="btnClearMarks">✖ KOSONG</button>
     </div>
@@ -245,7 +247,7 @@
         <option value="left_to_right">Kiri ➔ Kanan</option>
         <option value="right_to_left">Kanan ➔ Kiri</option>
       </select>
-      <div class="hint">Pilih arah sebenar pelari dilihat pada skrin kamera. Sistem akan menyusun jalur supaya pelari kelihatan sama seperti paparan kamera, bukan tercermin.</div>
+      <div class="hint">Ini hanya menetapkan orientasi permulaan. Kalau imej masih nampak tercermin, tekan butang CERMIN di skrin semakan — semua masa kekal betul.</div>
     </div>
 
     <div class="field">
@@ -268,7 +270,7 @@
 
     <button class="btn-ghost" id="btnInstall" style="display:none">⬇ PASANG KE SKRIN UTAMA</button>
     <button class="btn-primary" id="btnApply">SIMPAN & TUTUP</button>
-    <div class="hint" id="swState">Versi 3.2 — mod luar talian sedia.</div>
+    <div class="hint" id="swState">Versi 3.3 — mod luar talian sedia.</div>
   </div>
 </div>
 
@@ -592,11 +594,11 @@ function pollMic(){
 }
 
 /* ---------------- Skrin semakan ---------------- */
-/* Dalam slit-scan, bahagian badan yang melintas dahulu terletak di kiri imej.
-   Pelari yang bergerak KIRI ➔ KANAN menghadap ke kanan, jadi dadanya melintas
-   dahulu dan imej akan kelihatan tercermin melainkan jalur dibalikkan.
-   Pelari KANAN ➔ KIRI pula sudah betul tanpa pembalikan. */
-const isFlipped = () => S.direction === 'left_to_right';
+/* Pembalikan imej. Lalai mengikut tetapan arah pelari, tetapi boleh ditogol
+   terus di skrin semakan dengan butang CERMIN kerana orientasi sebenar
+   bergantung juga pada kedudukan kamera terhadap trek. */
+let flipView = false;
+const isFlipped = () => flipView;
 
 function timeAtX(xDisp){
   const W = photo.width;
@@ -604,7 +606,7 @@ function timeAtX(xDisp){
   return xt / S.pxPerSec * 1000;
 }
 
-function buildReview(){
+function renderStripCanvas(){
   const W = Math.max(lastX, 2), H = strip.height;
   photo.width = W; photo.height = H;
   const c = photo.getContext('2d', {alpha:false});
@@ -619,6 +621,27 @@ function buildReview(){
     c.drawImage(strip, 0, 0, W, H, 0, 0, W, H);
   }
   drawScale(c, W, H);
+  return W;
+}
+
+/* Cermin imej tanpa kehilangan tanda: setiap tanda dipindahkan ke kedudukan
+   bercermin supaya masanya kekal sama. */
+$('btnMirror').addEventListener('click', () => {
+  if(!photo.width) return;
+  const W = photo.width;
+  flipView = !flipView;
+  marks = marks.map(m => ({ x: W - 1 - m.x, t: m.t }));
+  markerX = W - 1 - markerX;
+  renderStripCanvas();
+  renderMarks();
+  applyZoom();
+  setMarker(markerX, true);
+  toast(flipView ? 'Imej dicermin' : 'Imej asal');
+});
+
+function buildReview(){
+  flipView = (S.direction === 'right_to_left');
+  const W = renderStripCanvas();
 
   marks = [];
   renderMarks();
@@ -966,11 +989,11 @@ addEventListener('appinstalled', () => { $('btnInstall').style.display = 'none';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(() => { $('swState').textContent = 'Versi 3.2 — sedia digunakan tanpa internet.'; })
-      .catch(() => { $('swState').textContent = 'Versi 3.2 — mod luar talian tidak aktif.'; });
+      .then(() => { $('swState').textContent = 'Versi 3.3 — sedia digunakan tanpa internet.'; })
+      .catch(() => { $('swState').textContent = 'Versi 3.3 — mod luar talian tidak aktif.'; });
   });
 }else{
-  $('swState').textContent = 'Versi 3.2 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 3.3 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 /* ---------------- Mula ---------------- */
