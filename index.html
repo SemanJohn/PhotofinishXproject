@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-<title>Photo Finish SKPR</title>
+<title>PhotoFinishX</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#0d1117">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PhotoFinish">
+<meta name="apple-mobile-web-app-title" content="PhotoFinishX">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" href="./icon-192.png">
 <style>
@@ -154,7 +154,7 @@
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
       </div>
     </div>
-    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.1</span></div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span><span id="metaFps">FPS: —</span> · v4.2</span></div>
     <canvas id="livePreview" height="54"></canvas>
   </div>
 
@@ -328,7 +328,7 @@
 'use strict';
 
 /* ============================================================
-   Photo Finish SKPR v3 — PWA
+   PhotoFinishX — PWA
    Paksi mendatar imej = MASA sebenar. Masa pada piksel x = x / pxPerSec.
    ============================================================ */
 
@@ -1177,7 +1177,7 @@ function exportName(){
   const d = new Date(), two = n => String(n).padStart(2, '0');
   const st = d.getFullYear() + two(d.getMonth()+1) + two(d.getDate()) + '_' +
              two(d.getHours()) + two(d.getMinutes()) + two(d.getSeconds());
-  const safe = (S.eventName || 'photofinish').replace(/[^\w\-]+/g, '_').slice(0, 40);
+  const safe = (S.eventName || 'photofinishx').replace(/[^\w\-]+/g, '_').slice(0, 40);
   return safe + '_' + st + '.png';
 }
 
@@ -1202,7 +1202,7 @@ $('btnShare').addEventListener('click', () => {
     const file = new File([blob], name, { type:'image/png' });
     const payload = {
       files:[file],
-      title: S.eventName || 'Photo Finish',
+      title: S.eventName || 'PhotoFinishX',
       text: (S.eventName ? S.eventName + '\n' : '') + markSummary()
     };
     if(navigator.canShare && navigator.canShare({ files:[file] })){
@@ -1293,7 +1293,7 @@ async function closeSettings(){
 }
 
 /* Tetapan disimpan supaya tidak perlu set semula setiap acara */
-const KEY = 'pf-skpr-settings';
+const KEY = 'photofinishx-settings';
 function saveSettings(){
   try{ localStorage.setItem(KEY, JSON.stringify({
     deviceId:S.deviceId, lensMode:S.lensMode, direction:S.direction,
@@ -1413,13 +1413,13 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       .then(reg => {
         swReg = reg;
         watchWorker(reg);
-        $('swState').textContent = 'Versi 4.1 — sedia digunakan tanpa internet.';
+        $('swState').textContent = 'Versi 4.2 — sedia digunakan tanpa internet.';
         setInterval(() => {
           checkUpdate(false);
           if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
         }, 60000);
       })
-      .catch(() => { $('swState').textContent = 'Versi 4.1 — mod luar talian tidak aktif.'; });
+      .catch(() => { $('swState').textContent = 'Versi 4.2 — mod luar talian tidak aktif.'; });
   });
 
   addEventListener('online', () => checkUpdate(false));
@@ -1427,7 +1427,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 4.1 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 4.2 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 $('btnUpdate').addEventListener('click', () => {
