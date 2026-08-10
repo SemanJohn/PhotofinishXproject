@@ -1,10 +1,10 @@
-/* Photo Finish SKPR — service worker
+/* PhotoFinishX — service worker
    Halaman: rangkaian dahulu (supaya kemas kini GitHub terus masuk bila ada talian).
    Aset lain: guna cache, kemas kini di latar belakang.
    Pengaktifan versi baharu dikawal oleh halaman melalui mesej 'skipWaiting',
    supaya aplikasi tidak dimuat semula di tengah-tengah rakaman. */
 
-const VERSION = 'pf-skpr-v4.1.0';
+const VERSION = 'photofinishx-v4.2.0';
 const SHELL = [
   './',
   './index.html',
