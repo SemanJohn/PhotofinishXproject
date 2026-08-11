@@ -7,7 +7,2147 @@
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#0d1117">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes"><!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>PhotoFinishX</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PhotoFinishX">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png">
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --line:#262d38; --ink:#e6edf3; --dim:#8b96a5;
+    --accent:#00e5c0; --warn:#ffd54a; --go:#2ea043; --stop:#da3633; --mark:#ff7ac6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100dvh;overflow:hidden;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  button{font-family:inherit}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+
+  /* ---------- SKRIN UTAMA ---------- */
+  #mainScreen{display:flex;flex-direction:column;height:100%}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:calc(8px + env(safe-area-inset-top)) 12px 8px;background:var(--panel);
+    border-bottom:1px solid var(--line);flex-shrink:0}
+  .brand{font-size:.72rem;font-weight:800;letter-spacing:.14em;color:var(--accent)}
+  .clock{font-size:1.45rem;font-weight:700;color:var(--accent);background:#000;
+    padding:2px 10px;border-radius:6px;border:1px solid rgba(0,229,192,.45)}
+  .btn-icon{background:#21262d;border:1px solid var(--line);color:var(--ink);
+    padding:8px 11px;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer}
+  .btn-icon:active{background:#2d333b}
+
+  .main-body{flex:1;display:flex;flex-direction:column;padding:8px;gap:8px;overflow:hidden;min-height:0}
+  .status{background:#111820;border:1px solid var(--line);color:var(--warn);
+    font-size:.74rem;text-align:center;padding:6px;border-radius:6px;font-weight:700;flex-shrink:0}
+  .meta{display:flex;justify-content:space-between;font-size:.65rem;color:var(--dim);padding:0 2px;flex-shrink:0}
+  .stage{position:relative;flex:1;min-height:0;background:#000;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+  video{width:100%;height:100%;object-fit:contain;display:block}
+  .finish-line{position:absolute;top:0;bottom:0;width:2px;background:#ff3b30;box-shadow:0 0 6px #ff3b30;z-index:5}
+  .preview-wrap{position:relative;flex-shrink:0}
+  .dir-badge{position:absolute;top:50%;transform:translateY(-50%);z-index:7;
+    background:rgba(0,0,0,.62);border:1px solid var(--line);color:var(--accent);
+    border-radius:8px;padding:4px 7px;pointer-events:none}
+  .dirgrp{display:flex;align-items:center;gap:1px}
+  .dirgrp.flipx{transform:scaleX(-1)}
+  .ico{width:21px;height:21px;display:block;flex-shrink:0}
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:#0b0f14;border:1px solid var(--line);
+    border-radius:8px;overflow:hidden}
+  .seg button{padding:13px 6px;background:transparent;border:none;color:var(--dim);
+    cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .seg button .ico{width:26px;height:26px}
+  .seg button.on{background:#21262d;color:var(--ink)}
+  .cam-off{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;align-items:center;
+    gap:8px;background:#0b0f14;z-index:6;text-align:center;padding:20px}
+  .cam-off .big{font-size:2rem}
+  .cam-off .t{font-size:.82rem;font-weight:700;color:var(--dim);line-height:1.5}
+  .btn-cam.off{background:#3d2020;border-color:#7d2b2b;color:#ff9d9d}
+  .lockbar{display:flex;gap:8px;flex-shrink:0}
+  .lockbar button{flex:1;background:#21262d;border:1px solid var(--line);color:var(--ink);
+    padding:9px;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer}
+  .lockbar button.on{background:#123d2a;border-color:var(--go);color:#7ee2a8}
+  .lockbar button.na{opacity:.45}
+  .sl2{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center}
+  .sl2 .mini{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--dim);font-weight:700;min-width:0}
+  .sl2 .mini span.v{width:38px;text-align:right;color:var(--ink)}
+  .sl2 .rst{background:#21262d;border:1px solid var(--line);color:var(--ink);
+    padding:7px 10px;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer}
+  #livePreview{width:100%;height:54px;background:#000;border:1px solid var(--line);border-radius:8px;display:block;flex-shrink:0}
+
+  .controls{background:var(--panel);padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+  .btn-run{width:100%;padding:16px;border:none;border-radius:10px;font-weight:800;font-size:1.05rem;
+    color:#fff;cursor:pointer;letter-spacing:.03em;transition:background .12s}
+  .btn-run.go{background:var(--go)}
+  .btn-run.stop{background:var(--stop)}
+  .btn-run.wait{background:#9a6700}
+  .btn-lg{padding:14px;border:none;border-radius:10px;font-weight:800;font-size:1rem;cursor:pointer;color:#fff}
+  .btn-go{background:var(--go)} .btn-stop{background:var(--stop)}
+  .sliders{display:flex;flex-direction:column;gap:8px}
+  .sl{display:flex;align-items:center;gap:10px;font-size:.72rem;color:var(--dim)}
+  .sl label{width:74px;flex-shrink:0;font-weight:700}
+  .sl .val{width:62px;text-align:right;color:var(--ink);font-weight:700}
+  input[type=range]{flex:1;accent-color:var(--accent);height:22px;min-width:0}
+
+  /* ---------- SKRIN SEMAKAN ---------- */
+  #reviewScreen{display:none;flex-direction:column;position:absolute;inset:0;z-index:100;background:var(--bg)}
+  .rev-head{background:var(--panel);border-bottom:1px solid var(--line);
+    padding:calc(10px + env(safe-area-inset-top)) 12px 10px;
+    display:flex;justify-content:space-between;align-items:center;gap:10px;flex-shrink:0}
+  .rev-head .lbl{font-size:.68rem;color:var(--dim);font-weight:700;letter-spacing:.1em}
+  .badge{font-size:1.5rem;font-weight:800;color:var(--warn);background:#000;padding:3px 12px;
+    border-radius:6px;border:1px solid rgba(255,213,74,.5)}
+  .rev-body{flex:1;display:flex;flex-direction:column;padding:8px;gap:8px;overflow:hidden;min-height:0}
+  .scroller{flex:1;min-height:0;background:#000;border:1px solid var(--accent);border-radius:10px;
+    overflow-x:auto;overflow-y:hidden;position:relative;-webkit-overflow-scrolling:touch}
+  .wrap{position:relative;display:inline-block;height:100%;touch-action:pan-x}
+  #photoCanvas{display:block}
+  #marker{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--warn);z-index:6;pointer-events:none}
+  #marker::before{content:attr(data-t);position:absolute;top:4px;left:6px;background:var(--warn);color:#000;
+    font:800 11px ui-monospace,monospace;padding:2px 6px;border-radius:4px;white-space:nowrap}
+  #marksLayer{position:absolute;inset:0;z-index:4;pointer-events:none}
+  .mk{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--mark)}
+  .mk .tag{position:absolute;left:5px;background:var(--mark);color:#2a0018;font:800 11px ui-monospace,monospace;
+    padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:auto;cursor:pointer;
+    box-shadow:0 1px 4px rgba(0,0,0,.6)}
+
+  .rev-ctrl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+    display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+  .nudge{display:flex;gap:6px}
+  .nudge button{flex:1;background:#21262d;border:1px solid var(--line);color:var(--ink);
+    padding:8px 2px;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer}
+  .marklist{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;min-height:26px;align-items:center}
+  .marklist .empty{font-size:.68rem;color:var(--dim)}
+  .chip{flex-shrink:0;background:#2b1526;border:1px solid var(--mark);color:var(--mark);
+    font:700 .7rem ui-monospace,monospace;padding:4px 8px;border-radius:20px;cursor:pointer;white-space:nowrap}
+
+  .rev-actions{padding:8px calc(8px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));
+    background:var(--panel);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+  .act-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+  .act-row.b{grid-template-columns:repeat(3,1fr)}
+  .btn-act{padding:13px 4px;border:none;border-radius:8px;font-weight:800;font-size:.82rem;color:#fff;cursor:pointer}
+  .b-mark{background:var(--mark);color:#2a0018} .b-undo{background:#484f58} .b-clear{background:#3d2430;color:var(--mark);border:1px solid var(--mark)}
+  .b-back{background:#484f58} .b-del{background:var(--stop)} .b-save{background:var(--go)}
+
+  /* ---------- TETAPAN ---------- */
+  #settingModal,#confirmModal,#saveModal,#nameModal{display:none;position:absolute;inset:0;background:rgba(0,0,0,.92);z-index:200;
+    justify-content:center;align-items:center;padding:14px}
+  .sbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:480px;
+    padding:16px;display:flex;flex-direction:column;gap:14px;max-height:88dvh;overflow-y:auto}
+  .shead{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px}
+  .stitle{font-size:1rem;font-weight:800;color:var(--accent);letter-spacing:.04em}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field>.lab{font-size:.78rem;color:var(--dim);font-weight:700}
+  select,input[type=text]{width:100%;padding:10px;background:#0b0f14;border:1px solid var(--line);
+    color:var(--ink);border-radius:8px;font-size:.85rem}
+  .hint{font-size:.68rem;color:var(--dim);line-height:1.45}
+  .meter{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px}
+  .bar{position:relative;height:14px;background:#1c222b;border-radius:7px;overflow:hidden}
+  .fill{height:100%;width:0%;background:var(--go);transition:width .05s linear}
+  .thr{position:absolute;top:0;bottom:0;width:2px;background:var(--warn);z-index:2}
+  .btn-primary{background:var(--accent);color:#00120f;padding:12px;border:none;border-radius:8px;
+    font-weight:800;cursor:pointer;font-size:.9rem}
+  .btn-ghost{background:transparent;color:var(--accent);border:1px solid var(--accent);
+    padding:11px;border-radius:8px;font-weight:800;cursor:pointer;font-size:.85rem}
+  .banner{display:none;background:#3d1d1d;border:1px solid #7d2b2b;color:#ffb3b3;
+    font-size:.75rem;padding:8px 10px;border-radius:8px;line-height:1.45}
+  #runsScreen{display:none;flex-direction:column;position:absolute;inset:0;z-index:150;background:var(--bg)}
+  .runs-body{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+  .run-row{display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:8px;cursor:pointer}
+  .run-row img{width:96px;height:54px;object-fit:cover;background:#000;border-radius:6px;flex-shrink:0}
+  .run-info{flex:1;min-width:0}
+  .run-title{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .run-sub{font-size:.68rem;color:var(--dim);margin-top:3px}
+  .run-dl{background:#12304d;border:1px solid #1f6feb;color:#8bc0ff;border-radius:8px;
+    padding:10px 12px;font-size:.85rem;font-weight:700;cursor:pointer;flex-shrink:0}
+  .run-del{background:#3d1d1d;border:1px solid #7d2b2b;color:#ff9d9d;border-radius:8px;
+    padding:10px 12px;font-size:.8rem;font-weight:700;cursor:pointer;flex-shrink:0}
+  .runs-foot{padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--panel);
+    border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+  .empty-note{color:var(--dim);font-size:.78rem;text-align:center;padding:28px 12px;line-height:1.6}
+  .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    background:#000;border:1px solid var(--accent);color:var(--accent);font-size:.78rem;font-weight:700;
+    padding:8px 14px;border-radius:20px;z-index:300;opacity:0;transition:opacity .18s;pointer-events:none}
+  .toast.on{opacity:1}
+
+  /* ==========================================================
+     PAPARAN DESKTOP / LAPTOP  (>= 1024px sahaja)
+     Semua peraturan di bawah HANYA aktif pada skrin lebar.
+     Paparan telefon & tablet portrait kekal 100% tidak berubah.
+     ========================================================== */
+  @media (min-width:1024px){
+
+    /* ---------- SKRIN UTAMA: kamera besar di kiri, kawalan di kanan ---------- */
+    #mainScreen{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) clamp(330px,26vw,430px);
+      grid-template-rows:auto auto auto auto auto minmax(0,1fr) auto;
+      grid-template-areas:
+        "head  head"
+        "stage bann"
+        "stage stat"
+        "stage meta"
+        "stage lock"
+        "stage ctrl"
+        "strip ctrl";
+      column-gap:16px; row-gap:10px;
+      height:100%; padding:0 18px 18px;
+    }
+    .main-body{display:contents}
+
+    header{grid-area:head;margin:0 -18px;padding:12px 20px}
+    .btn-icon{font-size:.85rem;padding:10px 15px}
+    .clock{font-size:1.9rem;padding:2px 16px}
+
+    .banner{grid-area:bann;font-size:.8rem}
+    .status{grid-area:stat;font-size:.82rem;padding:9px}
+    .stage{grid-area:stage;min-height:0}
+    .meta{grid-area:meta;font-size:.72rem;padding:0 2px}
+    .lockbar{grid-area:lock}
+    .lockbar button{font-size:.8rem;padding:11px}
+    .preview-wrap{grid-area:strip}
+
+    .controls{
+      grid-area:ctrl;align-self:start;
+      background:var(--panel);border:1px solid var(--line);border-top:1px solid var(--line);
+      border-radius:12px;padding:14px;gap:14px}
+    .btn-run{padding:18px;font-size:1.1rem}
+    .sliders{gap:12px}
+    .sl{font-size:.76rem}
+
+    /* ---------- SKRIN SEMAKAN: imej besar di kiri, kawalan di kanan ---------- */
+    .rev-head{padding:12px 20px}
+    .rev-body{flex-direction:row;padding:14px 18px;gap:14px}
+    .rev-body .scroller{flex:1;min-width:0}
+    .rev-ctrl{width:clamp(330px,26vw,430px);flex-shrink:0;align-self:stretch;
+      justify-content:flex-start;overflow-y:auto;padding:12px 14px;gap:12px}
+    .rev-ctrl .sl{font-size:.76rem}
+    .marklist{flex-wrap:wrap;overflow-x:visible;row-gap:6px}
+
+    .rev-actions{flex-direction:row;justify-content:center;align-items:center;
+      gap:14px;padding:12px 18px calc(12px + env(safe-area-inset-bottom))}
+    .rev-actions .act-row{flex:1;max-width:560px}
+    .btn-act{padding:14px 6px;font-size:.86rem}
+
+    /* ---------- TETAPAN: kotak penuh, dua lajur ---------- */
+    #settingModal{padding:24px}
+    #settingModal .sbox{
+      max-width:min(1120px,94vw);max-height:92dvh;
+      display:grid;grid-template-columns:1fr 1fr;gap:14px 22px;align-content:start;padding:20px 22px}
+    #settingModal .shead,
+    #settingModal #btnInstall,
+    #settingModal #btnApply,
+    #settingModal #btnUpdate,
+    #settingModal #swState{grid-column:1/-1}
+    #settingModal .field{
+      background:#10151c;border:1px solid var(--line);border-radius:10px;padding:12px 14px;gap:8px}
+    #settingModal .stitle{font-size:1.1rem}
+
+    /* ---------- SIMPAN GAMBAR ---------- */
+    #saveModal .sbox{max-width:min(1100px,94vw)!important}
+    #saveImg{height:52dvh}
+
+    /* ---------- REKOD TERSIMPAN ---------- */
+    #runsScreen .runs-body{
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));
+      align-content:start;padding:14px 18px;gap:12px}
+    #runsScreen .empty-note{grid-column:1/-1}
+    .run-row img{width:128px;height:72px}
+    .runs-foot{flex-direction:row;justify-content:space-between;align-items:center;
+      gap:16px;padding:12px 18px calc(12px + env(safe-area-inset-bottom))}
+    .runs-foot .btn-act{flex-shrink:0;padding:12px 20px}
+
+    /* ---------- Kesan tetikus (desktop sahaja) ---------- */
+    .btn-icon:hover,.lockbar button:hover,.nudge button:hover,
+    .sl2 .rst:hover,.seg button:hover{background:#2d333b}
+    .lockbar button.on:hover{background:#174a33}
+    .btn-run:hover,.btn-act:hover,.btn-primary:hover,.run-dl:hover,.run-del:hover{filter:brightness(1.12)}
+    .btn-ghost:hover{background:rgba(0,229,192,.1)}
+    .run-row:hover{border-color:var(--accent)}
+    .chip:hover{filter:brightness(1.2)}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= SKRIN UTAMA ================= -->
+<div id="mainScreen">
+  <header>
+    <button class="btn-icon" id="btnSetting">⚙ TETAPAN</button>
+    <button class="btn-icon btn-cam" id="btnCam">📷 KAMERA ON</button>
+    <div class="clock mono" id="clock">0.000</div>
+  </header>
+
+  <div class="main-body">
+    <div class="banner" id="banner"></div>
+    <div class="status" id="status">Mod manual — tekan MULA untuk merakam.</div>
+    <div class="stage">
+      <video id="webcam" autoplay playsinline muted></video>
+      <div class="finish-line" id="finishLine" style="left:50%"></div>
+      <div class="cam-off" id="camOff">
+        <div class="big">📷</div>
+        <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
+      </div>
+    </div>
+    <div class="meta"><span id="metaCam">Kamera: —</span><span id="metaFps">FPS: —</span></div>
+    <div class="lockbar">
+      <button id="btnLock">🔓 KUNCI FOKUS & CAHAYA</button>
+      <button id="btnRuns">🗂 REKOD</button>
+    </div>
+    <div class="preview-wrap">
+      <canvas id="livePreview" height="54"></canvas>
+      <div class="dir-badge" id="dirBadge"><span class="dirgrp"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12h13M12 7l5 5-5 5"/></svg></span></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-run go" id="btnRun">▶ MULA</button>
+    <div class="sliders">
+      <div class="sl"><label>Garisan</label><input type="range" id="slSlit" min="0" max="100" value="50"><span class="val mono" id="vSlit">50%</span></div>
+      <div class="sl"><label>Lebar imbas</label><input type="range" id="slSrc" min="1" max="6" value="2"><span class="val mono" id="vSrc">2 px</span></div>
+      <div class="sl"><label>Kelajuan</label><input type="range" id="slSpeed" min="60" max="600" step="20" value="240"><span class="val mono" id="vSpeed">240</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SKRIN SEMAKAN ================= -->
+<div id="reviewScreen">
+  <div class="rev-head">
+    <div class="lbl">GARISAN MASA</div>
+    <div class="badge mono" id="badge">0.000</div>
+  </div>
+
+  <div class="rev-body">
+    <div class="scroller" id="scroller">
+      <div class="wrap" id="wrap">
+        <canvas id="photoCanvas"></canvas>
+        <div id="marksLayer"></div>
+        <div id="marker" data-t="0.000"></div>
+      </div>
+    </div>
+
+    <div class="rev-ctrl">
+      <div class="sl"><label>Garisan masa</label><input type="range" id="slMarker" min="0" max="100" value="0"><span class="val mono" id="vMarker">0%</span></div>
+      <div class="sl"><label>Lebar hirisan</label><input type="range" id="slZoom" min="50" max="900" step="10" value="100"><span class="val mono" id="vZoom">×1.0</span></div>
+      <div class="sl2">
+        <div class="mini">☀ <input type="range" id="slBright" min="40" max="260" value="100"><span class="v" id="vBright">100</span></div>
+        <div class="mini">◐ <input type="range" id="slContrast" min="40" max="260" value="100"><span class="v" id="vContrast">100</span></div>
+        <button class="rst" id="btnResetImg">↺</button>
+      </div>
+      <div class="nudge">
+        <button id="nudgeL2">⏪ −10</button>
+        <button id="nudgeL1">◀ −1</button>
+        <button id="nudgeR1">+1 ▶</button>
+        <button id="nudgeR2">+10 ⏩</button>
+      </div>
+      <div class="marklist" id="markList"><span class="empty">Belum ada tanda. Gerakkan garisan ke dada pelari, kemudian tekan TANDA.</span></div>
+    </div>
+  </div>
+
+  <div class="rev-actions">
+    <div class="act-row">
+      <button class="btn-act b-mark" id="btnMark">✚ TANDA</button>
+      <button class="btn-act b-undo" id="btnUndo">↩ UNDO</button>
+      <button class="btn-act b-clear" id="btnClearMarks">✖ KOSONG</button>
+    </div>
+    <div class="act-row b">
+      <button class="btn-act b-back" id="btnBack">⬅ KEMBALI</button>
+      <button class="btn-act b-del" id="btnDelete">🗑 BUANG</button>
+      <button class="btn-act b-save" id="btnSave">💾 SIMPAN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TETAPAN ================= -->
+<div id="settingModal">
+  <div class="sbox">
+    <div class="shead">
+      <div class="stitle">TETAPAN SISTEM</div>
+      <button class="btn-icon" id="btnCloseSet">✖</button>
+    </div>
+
+    <div class="field">
+      <div class="lab">Kamera</div>
+      <select id="selCam"><option value="auto">Auto — pilih kamera terbaik</option></select>
+      <div class="hint">Pada telefon, lensa ultra-wide biasanya muncul sebagai kamera berasingan.</div>
+    </div>
+
+    <div class="field">
+      <div class="lab">Zum optik / digital</div>
+      <select id="selLens">
+        <option value="normal">Normal</option>
+        <option value="wide">Paling luas (zoom minimum)</option>
+        <option value="tele">Rapat (zoom maksimum)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <div class="lab">Kadar frame kamera</div>
+      <select id="selFps">
+        <option value="0">Auto (biar pelayar pilih)</option>
+        <option value="60">60 fps</option>
+        <option value="120">120 fps</option>
+        <option value="240">240 fps</option>
+      </select>
+      <select id="selRes">
+        <option value="1920x1080">1920 × 1080</option>
+        <option value="1280x720">1280 × 720</option>
+        <option value="960x540">960 × 540</option>
+        <option value="640x480">640 × 480</option>
+      </select>
+      <div class="hint" id="fpsHint">Resolusi tinggi memberi imej lebih terperinci, tetapi kadar frame selalunya turun. Auto akan pilih kadar frame dahulu.</div>
+      <button class="btn-ghost" id="btnProbe">🔍 KESAN KEUPAYAAN MAKS</button>
+      <div class="meter"><div class="hint" id="diag">Belum diuji.</div></div>
+    </div>
+
+    <div class="field">
+      <div class="lab">Kelajuan imbas</div>
+      <select id="selSpeedMode">
+        <option value="auto">Auto — padan dengan kadar frame kamera</option>
+        <option value="manual">Manual — guna slider di skrin utama</option>
+      </select>
+      <div class="hint">Mod auto menetapkan satu lajur bagi setiap frame, jadi tiada frame terbuang dan tiada blok teregang.</div>
+    </div>
+
+    <div class="field">
+      <div class="lab">Arah pelari</div>
+      <div class="seg">
+        <button id="dirLR"><span class="dirgrp"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12h13M12 7l5 5-5 5"/></svg></span></button>
+        <button id="dirRL"><span class="dirgrp flipx"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12h13M12 7l5 5-5 5"/></svg></span></button>
+      </div>
+      <div class="hint">Ini hanya menetapkan orientasi permulaan. Kalau imej masih nampak tercermin, tekan butang CERMIN di skrin semakan — semua masa kekal betul.</div>
+    </div>
+
+    <div class="field">
+      <div class="lab">Mod mula masa</div>
+      <select id="selTrig">
+        <option value="manual">Manual — tekan MULA</option>
+        <option value="sound">Bunyi — pistol / tepukan</option>
+      </select>
+    </div>
+
+    <div class="field" id="soundGroup" style="display:none">
+      <div class="lab">Ambang bunyi</div>
+      <div class="sl"><input type="range" id="slThr" min="5" max="95" value="45"><span class="val mono" id="vThr">45%</span></div>
+      <div class="meter">
+        <div class="hint">Aras bunyi semasa — uji dengan tepukan.</div>
+        <div class="bar"><div class="fill" id="micFill"></div><div class="thr" id="micThr" style="left:45%"></div></div>
+      </div>
+      <div class="hint">Selepas menekan SEDIA, sistem abai bunyi selama 0.5 saat supaya bunyi tekan butang tidak mencetuskan masa.</div>
+    </div>
+
+    <div class="field">
+      <div class="lab">Automasi masa (saat, dari masa 0)</div>
+      <div class="sl"><label style="width:auto;flex:1">Mula rakam pada saat</label>
+        <input type="number" id="inDelay" min="0" max="600" step="0.5" value="0" inputmode="decimal"
+               style="width:92px;padding:8px;text-align:center"></div>
+      <div class="sl"><label style="width:auto;flex:1">Henti automatik pada saat</label>
+        <input type="number" id="inAuto" min="0" max="600" step="0.5" value="0" inputmode="decimal"
+               style="width:92px;padding:8px;text-align:center"></div>
+      <div class="hint">Jam sentiasa bermula pada 0 semasa tembakan. Contoh 100m: mula rakam pada saat 10, henti pada saat 20 — imej lebih kecil, masa tetap tepat. Isi 0 untuk matikan.</div>
+    </div>
+
+    <button class="btn-ghost" id="btnInstall" style="display:none">⬇ PASANG KE SKRIN UTAMA</button>
+    <button class="btn-primary" id="btnApply">SIMPAN & TUTUP</button>
+    <button class="btn-ghost" id="btnUpdate">⟳ SEMAK KEMAS KINI</button>
+    <div class="hint" id="swState">Versi 3.8 — mod luar talian sedia.</div>
+  </div>
+</div>
+
+<div id="runsScreen">
+  <div class="rev-head">
+    <div class="lbl">REKOD TERSIMPAN</div>
+    <button class="btn-icon" id="runsClose">✖ TUTUP</button>
+  </div>
+  <div class="runs-body" id="runList"></div>
+  <div class="runs-foot">
+    <div class="hint" id="runsQuota">Menyemak storan…</div>
+    <button class="btn-act b-del" id="runsClear">🗑 BUANG SEMUA REKOD</button>
+  </div>
+</div>
+
+<div id="nameModal">
+  <div class="sbox" style="max-width:400px">
+    <div class="shead">
+      <div class="stitle">SIMPAN KE REKOD</div>
+      <button class="btn-icon" id="nameCancel">✖</button>
+    </div>
+    <div class="field">
+      <div class="lab">Nama acara</div>
+      <input type="text" id="nameInput" placeholder="cth: MSSD Muar — 100m L12 Akhir">
+      <div class="hint" id="nameHint">Nama ini dicetak pada imej dan digunakan sebagai nama fail.</div>
+    </div>
+    <button class="btn-primary" id="nameSave">💾 SIMPAN</button>
+  </div>
+</div>
+
+<div id="saveModal">
+  <div class="sbox" style="max-width:520px">
+    <div class="shead">
+      <div class="stitle">SIMPAN GAMBAR</div>
+      <button class="btn-icon" id="saveClose">✖</button>
+    </div>
+    <div style="background:#000;border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46dvh">
+      <img id="saveImg" alt="Imej photo finish" style="display:block;height:44dvh;max-width:none">
+    </div>
+    <div class="hint" id="saveHint">Tekan lama pada gambar di atas, kemudian pilih <b>Save Image</b> untuk simpan terus ke Galeri.</div>
+    <button class="btn-primary" id="saveShare">📤 BUKA MENU KONGSI</button>
+  </div>
+</div>
+
+<div id="confirmModal">
+  <div class="sbox" style="max-width:340px">
+    <div class="stitle" id="confirmText" style="font-size:.92rem;line-height:1.5">Teruskan?</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn-act b-back" id="confirmNo">BATAL</button>
+      <button class="btn-act b-del" id="confirmYes">YA</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   PhotoFinishX — PWA
+   Paksi mendatar imej = MASA sebenar. Masa pada piksel x = x / pxPerSec.
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+
+const S = {
+  deviceId:'', lensMode:'normal', direction:'left_to_right',
+  trigger:'manual', threshold:45,
+  slitPct:0.50, srcWidth:2, pxPerSec:240,
+  stripH:360, maxW:20000,
+  startDelay:0, autoStop:0,       // saat, diukur dari masa 0 (tembakan/MULA)
+  targetFps:0, resW:1280, resH:720, // 0 = biar pelayar pilih
+  speedMode:'auto', probed:false, cameraAuto:true
+};
+
+let mode = 'idle';                 // idle | armed | running
+let startTime = 0, lastX = 0;
+let strip = null, sctx = null;
+let stripT0 = 0;                   // masa (ms) yang diwakili oleh piksel pertama jalur
+let stream = null, videoTrack = null, cameraOn = true;
+let markerX = 0, zoom = 1, viewScale = 1;
+let marks = [];                    // [{x, t}] tanda kekal pada imej
+
+const video   = $('webcam');
+const preview = $('livePreview'), pctx = preview.getContext('2d', {alpha:false});
+const photo   = $('photoCanvas');
+const scroller= $('scroller'), wrap = $('wrap'), marker = $('marker'), marksLayer = $('marksLayer');
+
+/* ---------------- Utiliti ---------------- */
+/* Malaysia guna AM/PM dalam kegunaan harian; locale ms-MY memberi PG/PTG. */
+function stampText(ts){
+  const d = new Date(ts), two = n => String(n).padStart(2, '0');
+  const ap = d.getHours() < 12 ? 'AM' : 'PM';
+  const h  = d.getHours() % 12 || 12;
+  return two(d.getDate()) + '/' + two(d.getMonth()+1) + '/' + d.getFullYear() +
+         ', ' + h + ':' + two(d.getMinutes()) + ':' + two(d.getSeconds()) + ' ' + ap;
+}
+
+function fmt(ms){
+  if(!isFinite(ms) || ms < 0) ms = 0;
+  const s = ms/1000;
+  return s < 60 ? s.toFixed(3)
+                : Math.floor(s/60) + ':' + (s%60 < 10 ? '0' : '') + (s%60).toFixed(3);
+}
+function setStatus(t, c){ $('status').textContent = t; $('status').style.color = c || 'var(--warn)'; }
+function showBanner(t){ const b = $('banner'); b.textContent = t; b.style.display = 'block'; }
+let toastTimer = null;
+function toast(t){
+  const el = $('toast');
+  el.textContent = t; el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('on'), 1400);
+}
+
+/* ---------------- Kamera ---------------- */
+async function listCameras(){
+  try{
+    const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    const sel = $('selCam');
+    sel.innerHTML = '<option value="auto">Auto — pilih kamera terbaik</option>';
+    devs.forEach((d,i) => {
+      const o = document.createElement('option');
+      o.value = d.deviceId;
+      o.textContent = d.label || ('Kamera ' + (i+1));
+      sel.appendChild(o);
+    });
+    if(devs.length && !S.deviceId){
+      const back = devs.find(d => /back|rear|environment/i.test(d.label));
+      S.deviceId = (back || devs[0]).deviceId;
+    }
+    sel.value = S.cameraAuto ? 'auto' : (S.deviceId || 'auto');
+  }catch(e){ console.warn(e); }
+}
+
+async function startCamera(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    showBanner('Pelayar ini tidak menyokong akses kamera. Guna Chrome atau Safari terkini.'); return;
+  }
+  if(!window.isSecureContext){
+    showBanner('Kamera hanya berfungsi melalui HTTPS atau localhost. Hos fail ini di GitHub Pages atau pelayan tempatan.');
+  }
+  if(stream) stream.getTracks().forEach(t => t.stop());
+
+  /* Kadar frame tinggi selalunya hanya wujud pada resolusi rendah, dan setiap
+     peranti menolak kekangan yang berbeza. Jadi kita cuba dari yang paling
+     ketat kepada paling longgar sehingga ada yang berjaya. */
+  const dev = S.deviceId ? { deviceId:{exact:S.deviceId} } : { facingMode:'environment' };
+  const fps = S.targetFps, attempts = [];
+  if(fps){
+    attempts.push({ ...dev, width:{exact:S.resW}, height:{exact:S.resH}, frameRate:{exact:fps} });
+    attempts.push({ ...dev, width:{ideal:S.resW}, height:{ideal:S.resH}, frameRate:{min:fps, ideal:fps} });
+    attempts.push({ ...dev, frameRate:{exact:fps} });
+  }
+  attempts.push({ ...dev, width:{ideal:S.resW}, height:{ideal:S.resH}, frameRate:{ideal:fps || 120} });
+  attempts.push({ ...dev });
+  attempts.push({});
+
+  stream = null;
+  let lastErr = null;
+  for(const v of attempts){
+    try{ stream = await navigator.mediaDevices.getUserMedia({ video:v, audio:false }); break; }
+    catch(e){ lastErr = e; }
+  }
+  if(!stream){ showBanner('Kamera tidak dapat dibuka: ' + (lastErr && lastErr.message)); return; }
+  video.srcObject = stream;
+  videoTrack = stream.getVideoTracks()[0];
+  cameraOn = true;
+  camLocked = false;
+  paintCamState();
+  video.play().catch(()=>{});
+  await applyZoomCapability();
+  await listCameras();
+
+  video.onloadedmetadata = () => {
+    const st  = videoTrack.getSettings ? videoTrack.getSettings() : {};
+    const cap = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+    const maxFps = cap.frameRate && cap.frameRate.max ? Math.round(cap.frameRate.max) : null;
+    $('metaCam').textContent = 'Kamera: ' + (video.videoWidth || '?') + '×' + (video.videoHeight || '?') +
+                               (st.frameRate ? ' @' + Math.round(st.frameRate) + 'fps' : '') +
+                               (maxFps ? ' (maks ' + maxFps + ')' : '');
+    paintLockButton();
+    $('fpsHint').textContent = maxFps
+      ? 'Kamera ini melaporkan maksimum ' + maxFps + ' fps pada resolusi semasa.'
+      : 'Peranti ini tidak melaporkan kadar frame maksimum.';
+    if(S.targetFps && st.frameRate && Math.round(st.frameRate) < S.targetFps){
+      toast('Hanya ' + Math.round(st.frameRate) + ' fps diperoleh — cuba resolusi lebih rendah');
+    }
+    resetStrip();
+    if(!S.probed && !probing){
+      setTimeout(() => S.cameraAuto ? probeAllCameras() : probeBest(true), 800);
+    }else{
+      measureFps(1200).then(applyAutoSpeed);
+    }
+  };
+}
+
+function stopCameraStream(){
+  if(mode === 'running') stopCapture('manual');
+  mode = 'idle';
+  if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+  videoTrack = null;
+  video.srcObject = null;
+  cameraOn = false;
+  $('metaCam').textContent = 'Kamera: dimatikan';
+  $('metaFps').textContent = 'FPS: —';
+  paintCamState();
+}
+
+function paintCamState(){
+  const b = $('btnCam');
+  b.textContent = cameraOn ? '📷 KAMERA ON' : '📷 KAMERA OFF';
+  b.classList.toggle('off', !cameraOn);
+  $('camOff').style.display = cameraOn ? 'none' : 'flex';
+  $('btnRun').disabled = !cameraOn;
+  $('btnRun').style.opacity = cameraOn ? '1' : '.4';
+}
+
+$('btnCam').addEventListener('click', async () => {
+  if(cameraOn){
+    stopCameraStream();
+    releaseMic();
+    setStatus('Kamera dimatikan — penunjuk rakaman telefon padam.');
+  }else{
+    setStatus('Menghidupkan kamera…');
+    await startCamera();
+    if(cameraOn) setStatus(S.trigger === 'sound'
+      ? 'Mod bunyi — tekan SEDIA sebelum pelepas menembak.'
+      : 'Mod manual — tekan MULA untuk merakam.');
+  }
+});
+
+async function applyZoomCapability(){
+  if(!videoTrack || !videoTrack.getCapabilities) return;
+  try{
+    const cap = videoTrack.getCapabilities();
+    if(!cap.zoom) return;
+    let z = cap.zoom.min;
+    if(S.lensMode === 'tele') z = cap.zoom.max;
+    else if(S.lensMode === 'normal') z = Math.min(Math.max(1, cap.zoom.min), cap.zoom.max);
+    await videoTrack.applyConstraints({ advanced:[{ zoom:z }] });
+  }catch(e){}
+}
+
+/* ---------------- Pengesanan peranti & keupayaan ---------------- */
+function platformInfo(){
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const chromium = /Chrome|CriOS|Edg|OPR/.test(ua);
+  const firefox  = /Firefox|FxiOS/.test(ua);
+  let engine;
+  if(iOS)          engine = 'WebKit (iOS)';
+  else if(chromium)engine = 'Chromium';
+  else if(firefox) engine = 'Gecko';
+  else if(/Safari/.test(ua)) engine = 'WebKit';
+  else             engine = 'Tidak dikenali';
+  /* Pada iOS, semua pelayar terpaksa guna WebKit dan getUserMedia dihadkan
+     pada 60 fps — mod slo-mo 120/240 hanya terbuka kepada app kamera asli. */
+  return { iOS, engine, hardCap: iOS ? 60 : null };
+}
+
+function measureFps(ms){
+  return new Promise(resolve => {
+    const a = frameTotal, t0 = performance.now();
+    setTimeout(() => {
+      const dt = (performance.now() - t0) / 1000;
+      resolve(Math.round((frameTotal - a) / Math.max(dt, .001)));
+    }, ms || 1200);
+  });
+}
+
+/* Cuba gabungan resolusi + kadar frame dari yang terbaik ke bawah, guna
+   applyConstraints pada trek sedia ada supaya tiada permintaan izin baharu. */
+const COMBOS = [
+  [1920,1080,240], [1280,720,240], [960,540,240], [640,480,240],
+  [1920,1080,120], [1280,720,120], [960,540,120], [640,480,120],
+  [1920,1080,60],  [1280,720,60],  [960,540,60],  [640,480,60]
+];
+
+let probing = false;
+
+/* Uji setiap kamera belakang, pilih yang memberi kadar frame tertinggi.
+   Seri dileraikan oleh resolusi, kemudian lensa biasa diutamakan berbanding
+   telefoto atau ultra-wide kerana bidang pandangannya paling sesuai untuk trek. */
+function lensBonus(label){
+  const l = (label || '').toLowerCase();
+  if(/ultra/.test(l)) return 0;
+  if(/tele/.test(l))  return 1;
+  if(/triple|dual/.test(l)) return 2;
+  return 3;
+}
+
+async function probeAllCameras(){
+  if(probing) return;
+  probing = true;
+  const info = platformInfo();
+  toast('Menguji semua kamera…');
+  $('diag').textContent = 'Menguji kamera…';
+
+  let devs = [];
+  try{ devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput'); }
+  catch(e){}
+  const backs = devs.filter(d => /back|rear|environment/i.test(d.label));
+  const list  = backs.length ? backs : devs;
+
+  let best = null;
+  for(const d of list){
+    let st = null;
+    try{ st = await navigator.mediaDevices.getUserMedia({ video:{ deviceId:{ exact:d.deviceId } }, audio:false }); }
+    catch(e){ continue; }
+    const tr = st.getVideoTracks()[0];
+    let found = null;
+    for(const [w, h, f] of COMBOS){
+      if(info.hardCap && f > info.hardCap) continue;
+      try{
+        await tr.applyConstraints({ width:{exact:w}, height:{exact:h}, frameRate:{exact:f} });
+        const s2 = tr.getSettings(), got = Math.round(s2.frameRate || 0);
+        if(got >= f - 2){ found = { w, h, f:got }; break; }
+      }catch(e){}
+    }
+    if(!found){
+      const s2 = tr.getSettings();
+      found = { w:s2.width || 0, h:s2.height || 0, f:Math.round(s2.frameRate || 0) };
+    }
+    st.getTracks().forEach(t => t.stop());
+
+    const score = found.f * 1e9 + found.w * found.h * 10 + lensBonus(d.label);
+    if(!best || score > best.score){
+      best = { score, id:d.deviceId, label:d.label || 'Kamera', ...found };
+    }
+  }
+
+  if(!best){ $('diag').textContent = 'Tiada kamera boleh diuji.'; probing = false; return; }
+
+  S.cameraAuto = true;
+  S.deviceId = best.id;
+  S.targetFps = best.f; S.resW = best.w; S.resH = best.h; S.probed = true;
+  $('selFps').value = String(best.f);
+  $('selRes').value = best.w + 'x' + best.h;
+  probing = false;
+
+  await startCamera();
+  const measured = await measureFps(1500);
+  applyAutoSpeed(measured);
+  saveSettings();
+
+  $('diag').innerHTML =
+    'Enjin: <b>' + info.engine + '</b><br>' +
+    'Kamera dipilih: <b>' + best.label + '</b><br>' +
+    'Mod: <b>' + best.w + '×' + best.h + ' @' + best.f + ' fps</b><br>' +
+    'Diukur sebenar: <b>' + measured + ' fps</b><br>' +
+    'Ketepatan masa: <b>±' + (1000 / Math.max(measured, 1) / 2).toFixed(1) + ' ms</b><br>' +
+    'Tinggi imej jalur: <b>' + S.stripH + ' px</b>' +
+    (info.hardCap ? '<br>Nota: iOS menghadkan pelayar pada ' + info.hardCap + ' fps.' : '');
+  toast(best.label + ' — ' + measured + ' fps');
+}
+async function probeBest(silent){
+  if(probing || !videoTrack || !videoTrack.applyConstraints) return;
+  probing = true;
+  const info = platformInfo();
+  if(!silent) toast('Menguji keupayaan kamera…');
+
+  let best = null;
+  for(const [w, h, f] of COMBOS){
+    if(info.hardCap && f > info.hardCap) continue;   // jangan buang masa pada iOS
+    try{
+      await videoTrack.applyConstraints({
+        width:{exact:w}, height:{exact:h}, frameRate:{exact:f}
+      });
+      const st  = videoTrack.getSettings();
+      const got = Math.round(st.frameRate || 0);
+      if(got >= f - 2){ best = { w, h, f: got }; break; }
+    }catch(e){ /* gabungan ditolak — cuba yang seterusnya */ }
+  }
+
+  if(!best){
+    $('diag').textContent = 'Peranti menolak semua gabungan ketat. Menggunakan tetapan auto pelayar.';
+    probing = false;
+    await startCamera();
+    return;
+  }
+
+  S.targetFps = best.f; S.resW = best.w; S.resH = best.h; S.probed = true;
+  $('selFps').value = String(best.f);
+  $('selRes').value = best.w + 'x' + best.h;
+
+  const measured = await measureFps(1200);
+  applyAutoSpeed(measured);
+  saveSettings();
+
+  $('diag').innerHTML =
+    'Enjin: <b>' + info.engine + '</b><br>' +
+    'Mod terbaik: <b>' + best.w + '×' + best.h + ' @' + best.f + ' fps</b><br>' +
+    'Diukur sebenar: <b>' + measured + ' fps</b><br>' +
+    'Ketepatan masa: <b>±' + (1000 / Math.max(measured, 1) / 2).toFixed(1) + ' ms</b><br>' +
+    'Tinggi imej jalur: <b>' + S.stripH + ' px</b>' +
+    (info.hardCap ? '<br>Nota: iOS menghadkan pelayar pada ' + info.hardCap + ' fps.' : '');
+
+  if(!silent) toast(best.w + '×' + best.h + ' @' + measured + ' fps');
+  probing = false;
+}
+
+/* Kelajuan imbas paling sesuai ialah satu lajur bagi setiap frame kamera.
+   Lebih tinggi hanya meregang frame jadi blok; lebih rendah membuang frame. */
+function applyAutoSpeed(measured){
+  if(S.speedMode !== 'auto' || !measured) return;
+  const v = Math.max(60, Math.min(600, Math.round(measured * S.srcWidth / 20) * 20));
+  S.pxPerSec = v;
+  $('slSpeed').value = v;
+  $('vSpeed').textContent = v + ' (auto)';
+}
+
+/* ---------------- Kunci fokus, pendedahan & warna ----------------
+   Kamera telefon melaraskan diri sepanjang masa. Di tengah larian, pelarasan
+   itu menghasilkan jalur cerah-gelap pada imej. Menguncinya sebelum tembakan
+   memberi pendedahan sekata dari hujung ke hujung. */
+let camLocked = false;
+
+function lockableModes(){
+  const cap = (videoTrack && videoTrack.getCapabilities) ? videoTrack.getCapabilities() : {};
+  const has = k => Array.isArray(cap[k]) && cap[k].length > 1;
+  return {
+    cap,
+    focus: has('focusMode'),
+    expo:  has('exposureMode'),
+    wb:    has('whiteBalanceMode')
+  };
+}
+
+function paintLockButton(){
+  const b = $('btnLock');
+  const m = lockableModes();
+  const any = m.focus || m.expo || m.wb;
+  b.classList.toggle('on', camLocked);
+  b.classList.toggle('na', !any);
+  if(!any){ b.textContent = '🔒 Kunci tidak disokong pelayar ini'; return; }
+  b.textContent = camLocked ? '🔒 TERKUNCI — tekan untuk lepas' : '🔓 KUNCI FOKUS & CAHAYA';
+}
+
+async function toggleCamLock(){
+  if(!videoTrack || !videoTrack.applyConstraints) return;
+  const m = lockableModes();
+  if(!(m.focus || m.expo || m.wb)){
+    toast('Pelayar ini tidak membenarkan kunci kamera');
+    return;
+  }
+
+  const st  = videoTrack.getSettings ? videoTrack.getSettings() : {};
+  const cap = m.cap;
+  const pick = (list, want) => list.includes(want) ? want : (list.includes('single-shot') ? 'single-shot' : null);
+  const adv = {};
+
+  if(camLocked){
+    if(m.focus) adv.focusMode = 'continuous';
+    if(m.expo)  adv.exposureMode = 'continuous';
+    if(m.wb)    adv.whiteBalanceMode = 'continuous';
+  }else{
+    if(m.focus){
+      const md = pick(cap.focusMode, 'manual');
+      if(md){ adv.focusMode = md;
+        if(md === 'manual' && cap.focusDistance && st.focusDistance != null) adv.focusDistance = st.focusDistance; }
+    }
+    if(m.expo){
+      const md = pick(cap.exposureMode, 'manual');
+      if(md){ adv.exposureMode = md;
+        if(md === 'manual'){
+          if(cap.exposureTime && st.exposureTime != null) adv.exposureTime = st.exposureTime;
+          if(cap.iso && st.iso != null) adv.iso = st.iso;
+        }
+      }
+    }
+    if(m.wb){
+      const md = pick(cap.whiteBalanceMode, 'manual');
+      if(md){ adv.whiteBalanceMode = md;
+        if(md === 'manual' && cap.colorTemperature && st.colorTemperature != null) adv.colorTemperature = st.colorTemperature; }
+    }
+  }
+
+  try{
+    await videoTrack.applyConstraints({ advanced:[adv] });
+    camLocked = !camLocked;
+    paintLockButton();
+    toast(camLocked ? 'Fokus & cahaya dikunci' : 'Kembali ke automatik');
+  }catch(e){
+    toast('Kamera menolak kunci: ' + (e.message || e.name));
+  }
+}
+
+$('btnLock').addEventListener('click', toggleCamLock);
+
+/* ---------------- Kanvas jalur ---------------- */
+function resetStrip(){
+  /* Jalur setinggi mungkin supaya badan pelari terperinci, tetapi luas kanvas
+     dihadkan kerana Safari iOS menolak kanvas yang terlalu besar. */
+  S.stripH = Math.min(video.videoHeight || 360, 720) || 360;
+  S.maxW   = Math.min(20000, Math.floor(9000000 / S.stripH));
+  strip = document.createElement('canvas');
+  strip.width = 2000; strip.height = S.stripH;
+  sctx = strip.getContext('2d', {alpha:false});
+  sctx.imageSmoothingEnabled = false;
+  sctx.fillStyle = '#000'; sctx.fillRect(0, 0, strip.width, strip.height);
+  lastX = 0;
+  pctx.fillStyle = '#000'; pctx.fillRect(0, 0, preview.width, preview.height);
+}
+
+function ensureWidth(x){
+  if(x < strip.width) return true;
+  if(strip.width >= S.maxW) return false;
+  const nw = Math.min(S.maxW, strip.width * 2);
+  const tmp = document.createElement('canvas');
+  tmp.width = nw; tmp.height = strip.height;
+  const tc = tmp.getContext('2d', {alpha:false});
+  tc.imageSmoothingEnabled = false;
+  tc.fillStyle = '#000'; tc.fillRect(0, 0, nw, strip.height);
+  tc.drawImage(strip, 0, 0);
+  strip = tmp; sctx = tc;
+  return true;
+}
+
+/* ---------------- Enjin rakaman ---------------- */
+function captureFrame(now){
+  if(mode !== 'running' || !strip) return;
+  if(video.readyState < 2 || !video.videoWidth) return;
+
+  const elapsed = now - startTime;
+  if(elapsed < 0) return;
+
+  if(S.autoStop > 0 && elapsed >= S.autoStop * 1000){ stopCapture('auto'); return; }
+
+  const rel = elapsed - stripT0;      // jalur bermula selepas tempoh lengah
+  if(rel < 0) return;
+
+  const x = Math.round(rel * S.pxPerSec / 1000);
+  if(x <= lastX) return;
+  if(!ensureWidth(x)){ stopCapture('had'); return; }
+
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const sw = Math.max(1, Math.min(S.srcWidth, vw));
+  const sx = Math.min(vw - sw, Math.max(0, Math.round(vw * S.slitPct - sw/2)));
+
+  sctx.drawImage(video, sx, 0, sw, vh, lastX, 0, x - lastX, strip.height);
+  lastX = x;
+}
+
+let fpsCount = 0, fpsMark = 0, lastTick = 0, pumpGen = 0, frameTotal = 0;
+let clockOffset = null;
+
+/* Masa panggilan balik termasuk kelewatan render yang berubah-ubah setiap frame.
+   captureTime (bila ada) ialah masa frame ditangkap sensor. Kalau tiada, mediaTime
+   digunakan: ia stabil tetapi berlainan asalan, jadi asalannya dianggar dengan
+   kelewatan paling kecil yang pernah dilihat — kelewatan tidak boleh negatif. */
+function frameTime(now, meta){
+  if(meta){
+    if(typeof meta.captureTime === 'number' && meta.captureTime > 0) return meta.captureTime;
+    if(typeof meta.mediaTime === 'number'){
+      const est = now - meta.mediaTime * 1000;
+      if(clockOffset === null || est < clockOffset) clockOffset = est;
+      else clockOffset += (est - clockOffset) * 0.0005;   // benarkan hanyutan jam perlahan
+      return meta.mediaTime * 1000 + clockOffset;
+    }
+  }
+  return now;
+}
+
+/* Setiap rantaian frame diberi nombor generasi. Kalau rantaian lama tersekat
+   (contohnya dialog asli menghentikan callback pada iOS), pengawas di bawah
+   memulakan generasi baharu dan yang lama berhenti sendiri. */
+function pump(gen){
+  const tick = (now, meta) => {
+    if(gen !== pumpGen) return;
+    lastTick = now;
+    frameTotal++;
+    try{
+      captureFrame(frameTime(now, meta));
+      fpsCount++;
+      if(now - fpsMark > 1000){
+        const low = mode === 'running' && fpsCount * S.srcWidth < S.pxPerSec / 2;
+        $('metaFps').textContent = 'FPS: ' + fpsCount + (low ? ' \u26a0 rendah' : '');
+        fpsCount = 0; fpsMark = now;
+      }
+    }catch(e){ console.error('tick', e); }
+    pump(gen);
+  };
+  if(video.requestVideoFrameCallback) video.requestVideoFrameCallback((now, meta) => tick(now, meta));
+  else requestAnimationFrame(now => tick(now, null));
+}
+
+function restartPump(){
+  clockOffset = null;
+  pumpGen++;
+  lastTick = performance.now();
+  pump(pumpGen);
+}
+
+/* Pengawas: kalau tiada frame masuk lebih 1.5 saat sedangkan kamera sepatutnya
+   hidup, cuba main semula video dan mulakan rantaian frame baharu. */
+setInterval(() => {
+  if(!cameraOn || !stream || document.visibilityState !== 'visible') return;
+  if(performance.now() - lastTick < 1500) return;
+  const t = stream.getVideoTracks()[0];
+  if(!t || t.readyState === 'ended'){ startCamera(); return; }
+  video.play().catch(()=>{});
+  restartPump();
+}, 1000);
+
+function uiLoop(){
+  if(mode === 'running'){
+    const el = performance.now() - startTime;
+    $('clock').textContent = fmt(el);
+    if(stripT0 > 0 && el < stripT0){
+      setStatus('⏳ Rakaman bermula dalam ' + ((stripT0 - el) / 1000).toFixed(1) + ' s…', 'var(--warn)');
+    }else if(stripT0 > 0 && el < stripT0 + 400){
+      setStatus('▶ Merakam… tekan TAMAT selepas pelari melintas.', 'var(--accent)');
+    }
+    if(lastX > 0){
+      const shown = Math.min(lastX, 900);
+      pctx.fillStyle = '#000'; pctx.fillRect(0, 0, preview.width, preview.height);
+      pctx.save();
+      if(isFlipped()){ pctx.translate(preview.width, 0); pctx.scale(-1, 1); }
+      pctx.drawImage(strip, lastX - shown, 0, shown, strip.height, 0, 0, preview.width, preview.height);
+      pctx.restore();
+    }
+  }
+  requestAnimationFrame(uiLoop);
+}
+
+/* ---------------- Mula / Berhenti ---------------- */
+function beginCapture(t0){
+  mode = 'running'; startTime = t0;
+  flipView = (S.direction === 'left_to_right');   // pratonton ikut arah semasa
+  stripT0 = Math.max(0, S.startDelay) * 1000;
+  resetStrip();
+  $('clock').textContent = '0.000';
+  setStatus(stripT0 > 0
+    ? '⏳ Masa berjalan — rakaman bermula pada saat ' + S.startDelay + '.'
+    : '▶ Merakam… tekan TAMAT selepas pelari melintas.', 'var(--accent)');
+  paintRunButton();
+  requestWakeLock();
+}
+
+function stopCapture(reason){
+  const was = (mode === 'running');
+  mode = 'idle'; armedAt = 0;
+  paintRunButton();
+  if(!was || lastX < 2){
+    setStatus(reason === 'had' ? 'Had rakaman dicapai.'
+            : reason === 'auto' ? 'Henti automatik — tiada imej dirakam.'
+            : 'Belum ada rakaman. Tekan MULA dahulu.');
+    return false;
+  }
+  buildReview();
+  return true;
+}
+
+/* Satu butang untuk semua keadaan: MULA ➔ TAMAT ➔ MULA */
+function paintRunButton(){
+  const b = $('btnRun');
+  b.classList.remove('go', 'stop', 'wait');
+  if(mode === 'running'){
+    b.classList.add('stop');
+    b.textContent = '⏹ TAMAT';
+  }else if(mode === 'armed'){
+    b.classList.add('wait');
+    b.textContent = '✖ BATAL SEDIA';
+  }else{
+    b.classList.add('go');
+    b.textContent = S.trigger === 'sound' ? '🎤 SEDIA' : '▶ MULA';
+  }
+}
+
+$('btnRun').addEventListener('click', () => {
+  if(mode === 'running'){ stopCapture('manual'); return; }
+  if(mode === 'armed'){
+    mode = 'idle'; paintRunButton();
+    setStatus('Dibatalkan. Tekan SEDIA semula.');
+    return;
+  }
+  if(S.trigger === 'sound'){
+    mode = 'armed'; armedAt = performance.now();
+    $('clock').textContent = '0.000';
+    setStatus('🎤 SEDIA — menunggu bunyi pelepas…', 'var(--warn)');
+    paintRunButton();
+    initMic();
+  }else{
+    beginCapture(performance.now());
+  }
+});
+
+addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  const inReview = $('reviewScreen').style.display === 'flex';
+  if(e.code === 'Space'){
+    e.preventDefault();
+    if(inReview) addMark();
+    else $('btnRun').click();
+  }
+  if(!inReview) return;
+  if(e.key === 'Escape') $('btnBack').click();
+  if(e.key === 'Enter'){ e.preventDefault(); addMark(); }
+  if(e.key === 'ArrowLeft'){ e.preventDefault(); setMarker(markerX - (e.shiftKey ? 10 : 1)); }
+  if(e.key === 'ArrowRight'){ e.preventDefault(); setMarker(markerX + (e.shiftKey ? 10 : 1)); }
+});
+
+/* ---------------- Trigger bunyi ---------------- */
+let audioCtx = null, analyser = null, micStream = null, micTimer = null;
+let armedAt = 0, tdBuf = null, lastMeter = 0;
+
+async function initMic(){
+  if(analyser) return;
+  try{
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+    });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') await audioCtx.resume();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;   // tetingkap pendek supaya usia denyut mudah dianggar
+    audioCtx.createMediaStreamSource(micStream).connect(analyser);
+    tdBuf = new Uint8Array(analyser.fftSize);
+    micTimer = setInterval(pollMic, 4);
+  }catch(e){
+    setStatus('Mikrofon tidak dapat diakses. Guna mod manual.', '#ff6b6b');
+  }
+}
+function releaseMic(){
+  if(micTimer){ clearInterval(micTimer); micTimer = null; }
+  if(micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if(audioCtx){ audioCtx.close().catch(()=>{}); audioCtx = null; }
+  analyser = null;
+}
+function pollMic(){
+  if(!analyser) return;
+  analyser.getByteTimeDomainData(tdBuf);
+  let peak = 0, peakAt = tdBuf.length - 1;
+  for(let i = 0; i < tdBuf.length; i++){
+    const v = Math.abs(tdBuf[i] - 128);
+    if(v > peak){ peak = v; peakAt = i; }
+  }
+  const level = Math.min(100, Math.round(peak / 128 * 100));
+  const now = performance.now();
+  if(now - lastMeter > 50){ $('micFill').style.width = level + '%'; lastMeter = now; }
+
+  if(mode === 'armed' && now - armedAt > 500 && level >= S.threshold){
+    /* Denyut itu berada di suatu tempat dalam penimbal, bukan pada saat kita
+       membacanya. Tolak usia sebenar sampel puncak supaya masa 0 jatuh tepat
+       pada tembakan, bukan pada masa polling. */
+    const sr  = (audioCtx && audioCtx.sampleRate) || 48000;
+    const age = ((tdBuf.length - peakAt) / sr) * 1000;
+    beginCapture(now - age);
+  }
+}
+
+/* ---------------- Skrin semakan ---------------- */
+/* Orientasi imej.
+   Jalur mentah direkod dengan masa bertambah ke KANAN, jadi bahagian badan yang
+   melintas garisan dahulu (dada) berada di KIRI. Untuk pelari KIRI ➔ KANAN,
+   jalur dibalikkan supaya dada berada di KANAN — sama seperti rupa sebenar
+   pelari, dan paksi masa membaca dari kanan ke kiri.
+   Pelari KANAN ➔ KIRI tidak perlu dibalikkan. */
+let flipView = false;
+const isFlipped = () => flipView;
+
+/* Konteks imej yang sedang disemak. Diasingkan daripada tetapan langsung
+   supaya rakaman lama boleh dibuka semula dengan kelajuan imbas, masa mula
+   dan nama acara asalnya, walaupun tetapan kamera sudah berubah. */
+let rev = { pps:240, t0:0, event:'', ts:Date.now() };
+
+function timeAtX(xDisp){
+  const W = photo.width;
+  const xt = isFlipped() ? (W - 1 - xDisp) : xDisp;
+  return rev.t0 + xt / rev.pps * 1000;
+}
+
+function renderStripCanvas(){
+  const W = Math.max(lastX, 2), H = strip.height;
+  photo.width = W; photo.height = H;
+  const c = photo.getContext('2d', {alpha:false});
+  c.imageSmoothingEnabled = false;
+  c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+
+  if(isFlipped()){
+    c.save(); c.translate(W, 0); c.scale(-1, 1);
+    c.drawImage(strip, 0, 0, W, H, 0, 0, W, H);
+    c.restore();
+  }else{
+    c.drawImage(strip, 0, 0, W, H, 0, 0, W, H);
+  }
+  drawScale(c, W, H, rev.pps, rev.t0, rev.event, rev.ts, isFlipped());
+  return W;
+}
+
+function enterReview(){
+  const W = renderStripCanvas();
+  renderMarks();
+  markerX = Math.floor(W / 2);
+  $('slMarker').min = 0; $('slMarker').max = W - 1; $('slMarker').value = markerX;
+  $('slZoom').value = 100; zoom = 1; $('vZoom').textContent = '×1.0';
+
+  // Skrin utama TIDAK disembunyikan (display:none akan menghentikan strim video
+  // pada iOS dan memaksa kamera dibuka semula). Skrin semakan bertindih di atasnya.
+  $('reviewScreen').style.display = 'flex';
+  paintImageAdjust();
+  requestAnimationFrame(() => { applyZoom(); setMarker(markerX, true); });
+}
+
+function buildReview(){
+  flipView  = (S.direction === 'left_to_right');
+  rev = { pps:S.pxPerSec, t0:stripT0, event:'', ts:Date.now() };
+  currentRunId = rev.ts;
+  marks = [];
+  enterReview();
+  saveCurrentRun();          // tulis ke cakera di latar belakang
+}
+
+function drawScale(c, W, H, pps, t0, event, ts, flip){
+  c.font = '600 11px ui-monospace, monospace';
+  c.textAlign = 'center';
+  const base = t0 / 1000;                     // masa mutlak pada piksel pertama
+  const span = W / pps;
+  const first = Math.ceil(base * 10) / 10;
+  for(let tAbs = first; tAbs <= base + span + 1e-9; tAbs += 0.1){
+    const t = tAbs;
+    const xt = (tAbs - base) * pps;
+    const x = flip ? (W - 1 - xt) : xt;
+    const major = Math.abs(t - Math.round(t)) < 1e-6;
+    c.strokeStyle = major ? 'rgba(255,80,80,.85)' : 'rgba(255,255,255,.28)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(x + .5, H - (major ? 24 : 10));
+    c.lineTo(x + .5, H);
+    c.stroke();
+    if(major && t > 0){ c.fillStyle = '#00e5c0'; c.fillText(Math.round(t) + 's', x, H - 28); }
+  }
+  if(event){
+    c.textAlign = 'left';
+    c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(0, 0, Math.min(W, 460), 20);
+    c.fillStyle = '#e6edf3';
+    c.fillText(event + '  •  ' + stampText(ts), 6, 14);
+  }
+}
+
+/* ---- tanda kekal ---- */
+function addMark(){
+  if(!photo.width) return;
+  if(marks.some(m => m.x === markerX)){ toast('Sudah ada tanda di garisan ini'); return; }
+  marks.push({ x: markerX, t: timeAtX(markerX) });
+  marks.sort((a,b) => a.t - b.t);
+  renderMarks();
+  queueMarkSave();
+  toast('Tanda #' + (marks.findIndex(m => m.x === markerX) + 1) + ' — ' + fmt(timeAtX(markerX)));
+}
+
+function renderMarks(){
+  marksLayer.innerHTML = '';
+  marks.forEach((m, i) => {
+    const el = document.createElement('div');
+    el.className = 'mk';
+    el.style.left = (m.x * viewScale) + 'px';
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = '#' + (i+1) + '  ' + fmt(m.t);
+    tag.style.top = (34 + (i % 4) * 26) + 'px';
+    tag.title = 'Ketik untuk buang tanda ini';
+    tag.addEventListener('pointerdown', ev => { ev.stopPropagation(); });
+    tag.addEventListener('click', ev => {
+      ev.stopPropagation();
+      marks.splice(i, 1); renderMarks(); queueMarkSave(); toast('Tanda dibuang');
+    });
+    el.appendChild(tag);
+    marksLayer.appendChild(el);
+  });
+  renderMarkList();
+}
+
+function renderMarkList(){
+  const box = $('markList');
+  box.innerHTML = '';
+  if(!marks.length){
+    box.innerHTML = '<span class="empty">Belum ada tanda. Gerakkan garisan ke dada pelari, kemudian tekan TANDA.</span>';
+    return;
+  }
+  marks.forEach((m, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = '#' + (i+1) + ' · ' + fmt(m.t);
+    chip.addEventListener('click', () => setMarker(m.x, true));
+    box.appendChild(chip);
+  });
+}
+
+$('btnMark').addEventListener('click', addMark);
+$('btnUndo').addEventListener('click', () => {
+  if(!marks.length) return;
+  marks.pop(); renderMarks(); queueMarkSave(); toast('Tanda terakhir dibuang');
+});
+$('btnClearMarks').addEventListener('click', async () => {
+  if(!marks.length) return;
+  if(!await askConfirm('Kosongkan semua tanda?')) return;
+  marks = []; renderMarks(); queueMarkSave();
+});
+
+/* ---- zum, garisan, gerak ---- */
+/* Bukan zum. Tinggi imej sentiasa muat kotak; hanya paksi masa diregangkan,
+   sama seperti melebarkan setiap hirisan. Jadi tiada tatal menegak — pelari
+   kekal penuh dari kepala ke kaki, cuma badannya jadi lebih lebar. */
+function applyZoom(){
+  const box = scroller.clientHeight || 200;
+  const fit = box / photo.height;
+  viewScale = fit * zoom;
+  const w = photo.width * viewScale;
+  photo.style.height = box + 'px';
+  photo.style.width  = w + 'px';
+  wrap.style.width   = w + 'px';
+  marks.forEach((m, i) => {
+    const el = marksLayer.children[i];
+    if(el) el.style.left = (m.x * viewScale) + 'px';
+  });
+  placeMarker(true);
+}
+
+function setMarker(x, center){
+  markerX = Math.max(0, Math.min(photo.width - 1, Math.round(x)));
+  $('slMarker').value = markerX;
+  const t = timeAtX(markerX);
+  $('badge').textContent = fmt(t);
+  marker.dataset.t = fmt(t);
+  $('vMarker').textContent = Math.round(markerX / Math.max(1, photo.width - 1) * 100) + '%';
+  placeMarker(center);
+}
+
+function placeMarker(center){
+  marker.style.left = (markerX * viewScale) + 'px';
+  if(center){
+    scroller.scrollLeft = markerX * viewScale - scroller.clientWidth / 2;
+  }else{
+    const px = markerX * viewScale - scroller.scrollLeft;
+    if(px < 40) scroller.scrollLeft = markerX * viewScale - 40;
+    if(px > scroller.clientWidth - 40) scroller.scrollLeft = markerX * viewScale - scroller.clientWidth + 40;
+  }
+}
+
+$('slMarker').addEventListener('input', e => setMarker(+e.target.value, false));
+$('slZoom').addEventListener('input', e => {
+  zoom = +e.target.value / 100;
+  $('vZoom').textContent = '×' + zoom.toFixed(1);
+  applyZoom();
+});
+$('nudgeL2').addEventListener('click', () => setMarker(markerX - 10));
+$('nudgeL1').addEventListener('click', () => setMarker(markerX - 1));
+$('nudgeR1').addEventListener('click', () => setMarker(markerX + 1));
+$('nudgeR2').addEventListener('click', () => setMarker(markerX + 10));
+
+let dragging = false;
+const pointToX = ev => (ev.clientX - photo.getBoundingClientRect().left) / viewScale;
+wrap.addEventListener('pointerdown', e => { dragging = true; wrap.setPointerCapture(e.pointerId); setMarker(pointToX(e), false); });
+wrap.addEventListener('pointermove', e => { if(dragging) setMarker(pointToX(e), false); });
+wrap.addEventListener('pointerup', () => dragging = false);
+wrap.addEventListener('pointercancel', () => dragging = false);
+addEventListener('resize', () => { if($('reviewScreen').style.display === 'flex') applyZoom(); });
+
+$('btnBack').addEventListener('click', () => {
+  $('reviewScreen').style.display = 'none';
+  /* Kembali ke keadaan asal — rakaman sudah tersimpan dalam rekod, jadi
+     jam dan jalur pratonton dikosongkan supaya tidak keliru dengan larian baharu. */
+  $('clock').textContent = '0.000';
+  pctx.fillStyle = '#000'; pctx.fillRect(0, 0, preview.width, preview.height);
+  if(cameraOn){ video.play().catch(()=>{}); restartPump(); }
+  setStatus('Tersimpan dalam rekod. Tekan MULA untuk larian baharu.');
+});
+
+/* confirm() asli menghentikan requestVideoFrameCallback pada iOS dan
+   menyebabkan paparan kamera beku, jadi pengesahan dibuat dalam app. */
+function askConfirm(text){
+  return new Promise(resolve => {
+    $('confirmText').textContent = text;
+    $('confirmModal').style.display = 'flex';
+    const done = ans => {
+      $('confirmModal').style.display = 'none';
+      $('confirmYes').onclick = null;
+      $('confirmNo').onclick = null;
+      if(cameraOn) video.play().catch(()=>{});
+      resolve(ans);
+    };
+    $('confirmYes').onclick = () => done(true);
+    $('confirmNo').onclick  = () => done(false);
+  });
+}
+
+$('btnDelete').addEventListener('click', async () => {
+  if(!await askConfirm('Buang rakaman ini? Semua tanda akan hilang.')) return;
+  if(currentRunId){ try{ await dbDel(currentRunId); }catch(e){} currentRunId = null; refreshRunCount(); }
+  marks = []; resetStrip();
+  $('clock').textContent = '0.000';
+  $('reviewScreen').style.display = 'none';
+  if(cameraOn){ video.play().catch(()=>{}); restartPump(); }
+  setStatus('Rakaman dibuang. Sedia untuk larian baharu.');
+});
+
+/* ---- kecerahan & kontras imej semakan ----
+   Dipakai pada paparan melalui penapis CSS, dan dibakar ke dalam PNG semasa
+   simpan. Kalau pelayar tiada penapis kanvas, piksel dilaras terus. */
+let imgBright = 100, imgContrast = 100, filterOk = null;
+
+function supportsCanvasFilter(){
+  if(filterOk !== null) return filterOk;
+  const t = document.createElement('canvas').getContext('2d');
+  t.filter = 'brightness(1.5)';
+  filterOk = (t.filter !== 'none' && t.filter !== undefined);
+  return filterOk;
+}
+
+function filterString(){
+  return 'brightness(' + imgBright + '%) contrast(' + imgContrast + '%)';
+}
+
+function paintImageAdjust(){
+  photo.style.filter = (imgBright === 100 && imgContrast === 100) ? 'none' : filterString();
+  $('vBright').textContent = imgBright;
+  $('vContrast').textContent = imgContrast;
+}
+
+function adjustPixels(c, w, h){
+  const d = c.getImageData(0, 0, w, h), a = d.data;
+  const br = imgBright / 100, ct = imgContrast / 100;
+  for(let i = 0; i < a.length; i += 4){
+    for(let k = 0; k < 3; k++){
+      let v = a[i + k] * br;
+      v = (v - 128) * ct + 128;
+      a[i + k] = v < 0 ? 0 : v > 255 ? 255 : v;
+    }
+  }
+  c.putImageData(d, 0, 0);
+}
+
+$('slBright').addEventListener('input', e => { imgBright = +e.target.value; paintImageAdjust(); });
+$('slContrast').addEventListener('input', e => { imgContrast = +e.target.value; paintImageAdjust(); });
+$('btnResetImg').addEventListener('click', () => {
+  imgBright = 100; imgContrast = 100;
+  $('slBright').value = 100; $('slContrast').value = 100;
+  paintImageAdjust();
+});
+
+/* ---- imej akhir: skala, tanda dan pelarasan cahaya dibakar ke dalam PNG ---- */
+function stampMarks(c, list, W, H, fallback){
+  c.font = '800 15px ui-monospace, monospace';
+  c.textAlign = 'center';
+  const stamp = (x, label, colour, textColour, top) => {
+    c.strokeStyle = colour; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(x + .5, 0); c.lineTo(x + .5, H); c.stroke();
+    const w = c.measureText(label).width + 14;
+    const bx = Math.min(Math.max(0, x - w / 2), W - w);
+    c.fillStyle = colour; c.fillRect(bx, top, w, 22);
+    c.fillStyle = textColour; c.fillText(label, bx + w / 2, top + 16);
+  };
+  if(list.length){
+    list.forEach((m, i) => stamp(m.x, '#' + (i+1) + ' ' + fmt(m.t), '#ff7ac6', '#2a0018', 34 + (i % 4) * 26));
+  }else if(fallback){
+    stamp(fallback.x, fmt(fallback.t), '#ffd54a', '#000', 34);
+  }
+}
+
+function applyAdjust(c, src, W, H, bright, contrast){
+  const on = bright !== 100 || contrast !== 100;
+  if(on && supportsCanvasFilter()){
+    c.filter = 'brightness(' + bright + '%) contrast(' + contrast + '%)';
+    c.drawImage(src, 0, 0);
+    c.filter = 'none';
+  }else{
+    c.drawImage(src, 0, 0);
+    if(on){
+      const save = [imgBright, imgContrast];
+      imgBright = bright; imgContrast = contrast;
+      adjustPixels(c, W, H);
+      imgBright = save[0]; imgContrast = save[1];
+    }
+  }
+}
+
+/* Bina imej siap terus daripada rekod tersimpan — tidak bergantung pada
+   apa yang sedang dipapar di skrin, jadi boleh dimuat turun dari senarai. */
+async function composeRun(rec){
+  const img = await blobToImage(rec.blob);
+  const W = rec.w, H = rec.h;
+  const base = document.createElement('canvas');
+  base.width = W; base.height = H;
+  const b = base.getContext('2d', {alpha:false});
+  b.imageSmoothingEnabled = false;
+  b.fillStyle = '#000'; b.fillRect(0, 0, W, H);
+  if(rec.flip){ b.save(); b.translate(W, 0); b.scale(-1, 1); b.drawImage(img, 0, 0); b.restore(); }
+  else b.drawImage(img, 0, 0);
+  drawScale(b, W, H, rec.pps, rec.t0, rec.event, rec.ts, !!rec.flip);
+
+  const out = document.createElement('canvas');
+  out.width = W; out.height = H;
+  const c = out.getContext('2d', {alpha:false});
+  applyAdjust(c, base, W, H, rec.bright || 100, rec.contrast || 100);
+  stampMarks(c, rec.marks || [], W, H, null);
+  return out;
+}
+
+function exportName(rec){
+  const d = new Date(rec.ts), two = n => String(n).padStart(2, '0');
+  const st = d.getFullYear() + two(d.getMonth()+1) + two(d.getDate()) + '_' +
+             two(d.getHours()) + two(d.getMinutes()) + two(d.getSeconds());
+  const safe = (rec.event || 'photofinishx').replace(/[^\w\-]+/g, '_').slice(0, 40);
+  return safe + '_' + st + '.png';
+}
+
+function markSummary(rec){
+  const list = rec.marks || [];
+  if(!list.length) return 'Tiada tanda.';
+  return list.map((m, i) => '#' + (i+1) + ' — ' + fmt(m.t)).join('\n');
+}
+
+/* Muat turun fail tidak boleh dipercayai pada iOS, lebih-lebih lagi dalam mod
+   skrin utama — pautan 'download' diabaikan tanpa sebarang mesej. Jadi pada
+   iOS gambar dipaparkan supaya boleh disimpan terus ke Galeri. */
+let saveUrl = null, saveBlob = null, saveMeta = null;
+
+function releaseSaveUrl(){
+  if(saveUrl){ URL.revokeObjectURL(saveUrl); saveUrl = null; }
+}
+
+function showSaveSheet(blob, rec){
+  releaseSaveUrl();
+  saveBlob = blob; saveMeta = rec;
+  saveUrl = URL.createObjectURL(blob);
+  $('saveImg').src = saveUrl;
+  $('saveModal').style.display = 'flex';
+}
+
+$('saveClose').addEventListener('click', () => {
+  $('saveModal').style.display = 'none';
+  releaseSaveUrl();
+  if(cameraOn) video.play().catch(()=>{});
+});
+
+$('saveShare').addEventListener('click', async () => {
+  if(!saveBlob) return;
+  const name = exportName(saveMeta);
+  const file = new File([saveBlob], name, { type:'image/png' });
+  const payload = {
+    files:[file],
+    title: saveMeta.event || 'PhotoFinishX',
+    text: (saveMeta.event ? saveMeta.event + '\n' : '') + markSummary(saveMeta)
+  };
+  if(navigator.canShare && navigator.canShare({ files:[file] })){
+    try{ await navigator.share(payload); }
+    catch(e){ if(e.name !== 'AbortError') toast('Perkongsian dibatalkan'); }
+  }else{
+    toast('Pelayar tidak sokong menu kongsi');
+  }
+});
+
+async function downloadRun(rec){
+  toast('Menyediakan imej…');
+  let canvas;
+  try{ canvas = await composeRun(rec); }
+  catch(e){ toast('Imej rekod tidak dapat dibaca'); return; }
+  canvas.toBlob(blob => {
+    if(!blob){ toast('Gagal menyediakan imej'); return; }
+    if(platformInfo().iOS){ showSaveSheet(blob, rec); return; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.download = exportName(rec); a.href = url;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 8000);
+    toast('Imej dimuat turun');
+  }, 'image/png');
+}
+
+/* ---- SIMPAN di skrin semakan: namakan acara, tulis ganti rekod yang sama ---- */
+$('btnSave').addEventListener('click', () => {
+  $('nameInput').value = rev.event || '';
+  $('nameHint').textContent = currentRunId
+    ? 'Menyimpan semula rekod ini. Nama lama boleh diubah.'
+    : 'Nama ini dicetak pada imej dan digunakan sebagai nama fail.';
+  $('nameModal').style.display = 'flex';
+  setTimeout(() => $('nameInput').focus(), 60);
+});
+
+$('nameCancel').addEventListener('click', () => {
+  $('nameModal').style.display = 'none';
+  if(cameraOn) video.play().catch(()=>{});
+});
+
+$('nameSave').addEventListener('click', async () => {
+  rev.event = $('nameInput').value.trim();
+  $('nameModal').style.display = 'none';
+  renderStripCanvas();       // cetak semula kapsyen dengan nama baharu
+  renderMarks();
+  applyZoom();
+  setMarker(markerX, false);
+  await saveCurrentRun();    // tulis ganti rekod yang sama
+  refreshRunCount();
+  toast(rev.event ? 'Disimpan: ' + rev.event : 'Disimpan ke rekod');
+  if(cameraOn) video.play().catch(()=>{});
+});
+
+/* ---------------- Pelarasan pantas ---------------- */
+$('slSlit').addEventListener('input', e => {
+  S.slitPct = e.target.value / 100;
+  $('finishLine').style.left = e.target.value + '%';
+  $('vSlit').textContent = e.target.value + '%';
+});
+$('slSrc').addEventListener('input', e => { S.srcWidth = +e.target.value; $('vSrc').textContent = S.srcWidth + ' px'; });
+$('slSpeed').addEventListener('input', e => {
+  if(mode === 'running'){ e.target.value = S.pxPerSec; return; }
+  S.pxPerSec = +e.target.value;
+  S.speedMode = 'manual';
+  $('selSpeedMode').value = 'manual';
+  $('vSpeed').textContent = S.pxPerSec;
+});
+
+/* ---------------- Tetapan ---------------- */
+$('btnSetting').addEventListener('click', () => {
+  $('settingModal').style.display = 'flex';
+  if($('selTrig').value === 'sound') initMic();
+});
+$('btnCloseSet').addEventListener('click', closeSettings);
+$('btnApply').addEventListener('click', closeSettings);
+$('selTrig').addEventListener('change', e => {
+  $('soundGroup').style.display = e.target.value === 'sound' ? 'flex' : 'none';
+  if(e.target.value === 'sound') initMic();
+});
+$('btnProbe').addEventListener('click', () => S.cameraAuto ? probeAllCameras() : probeBest(false));
+
+function paintDirection(){
+  const lr = S.direction === 'left_to_right';
+  $('dirLR').classList.toggle('on', lr);
+  $('dirRL').classList.toggle('on', !lr);
+  /* Lencana diletak di hujung tempat pelari bermula, di atas jalur pratonton.
+     Mencerminkan keseluruhan kumpulan membalikkan pelari DAN anak panah
+     sekali, jadi kedua-dua arah kelihatan seimbang. */
+  const b = $('dirBadge');
+  b.style.left  = lr ? '8px'  : 'auto';
+  b.style.right = lr ? 'auto' : '8px';
+  b.querySelector('.dirgrp').classList.toggle('flipx', !lr);
+
+  /* Pratonton jalur dicermin mengikut flipView. Kalau ia hanya dikemas kini
+     semasa skrin semakan dibina, pratonton akan mengikut rakaman sebelumnya
+     dan tertinggal satu langkah. Selagi tiada imej sedang disemak, selaraskan
+     terus dengan tetapan arah semasa. */
+  if($('reviewScreen').style.display !== 'flex') flipView = lr;
+}
+
+$('dirLR').addEventListener('click', () => { S.direction = 'left_to_right'; paintDirection(); saveSettings(); });
+$('dirRL').addEventListener('click', () => { S.direction = 'right_to_left'; paintDirection(); saveSettings(); });
+
+$('slThr').addEventListener('input', e => {
+  S.threshold = +e.target.value;
+  $('vThr').textContent = S.threshold + '%';
+  $('micThr').style.left = S.threshold + '%';
+});
+
+async function closeSettings(){
+  $('settingModal').style.display = 'none';
+  const pick = $('selCam').value;
+  const wasAuto = S.cameraAuto;
+  S.cameraAuto = (pick === 'auto');
+  const camChanged = S.cameraAuto ? !wasAuto : (pick && pick !== S.deviceId);
+  const lensChanged = $('selLens').value !== S.lensMode;
+
+  if(pick && pick !== 'auto') S.deviceId = pick;
+  S.lensMode  = $('selLens').value;
+  S.trigger   = $('selTrig').value;
+  const fpsChanged = (+$('selFps').value !== S.targetFps) || ($('selRes').value !== S.resW + 'x' + S.resH);
+  S.targetFps = +$('selFps').value;
+  const rr = $('selRes').value.split('x');
+  S.resW = +rr[0]; S.resH = +rr[1];
+  S.speedMode = $('selSpeedMode').value;
+  S.startDelay = Math.max(0, parseFloat($('inDelay').value) || 0);
+  S.autoStop   = Math.max(0, parseFloat($('inAuto').value)  || 0);
+  if(S.autoStop > 0 && S.autoStop <= S.startDelay){
+    S.autoStop = 0; $('inAuto').value = 0;
+    toast('Henti automatik mesti lewat daripada masa mula — dimatikan');
+  }
+  paintRunButton();
+  saveSettings();
+
+  if(S.cameraAuto && (camChanged || !S.probed)) await probeAllCameras();
+  else if(camChanged || fpsChanged || !cameraOn) await startCamera();
+  else if(lensChanged) await applyZoomCapability();
+
+  if(S.trigger === 'sound'){
+    setStatus('Mod bunyi — tekan SEDIA sebelum pelepas menembak.');
+    initMic();
+  }else{
+    setStatus('Mod manual — tekan MULA untuk merakam.');
+    releaseMic();
+  }
+}
+
+/* Tetapan disimpan supaya tidak perlu set semula setiap acara */
+const KEY = 'photofinishx-settings';
+function saveSettings(){
+  try{ localStorage.setItem(KEY, JSON.stringify({
+    deviceId:S.deviceId, lensMode:S.lensMode, direction:S.direction,
+    trigger:S.trigger, threshold:S.threshold, slitPct:S.slitPct,
+    srcWidth:S.srcWidth, pxPerSec:S.pxPerSec,
+    startDelay:S.startDelay, autoStop:S.autoStop,
+    targetFps:S.targetFps, resW:S.resW, resH:S.resH,
+    speedMode:S.speedMode, probed:S.probed, cameraAuto:S.cameraAuto
+  })); }catch(e){}
+}
+function loadSettings(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return;
+    Object.assign(S, JSON.parse(raw));
+  }catch(e){}
+  $('selFps').value = String(S.targetFps || 0);
+  $('selRes').value = S.resW + 'x' + S.resH;
+  $('selSpeedMode').value = S.speedMode || 'auto';
+  $('inDelay').value = S.startDelay || 0;
+  $('inAuto').value  = S.autoStop || 0;
+  $('selLens').value = S.lensMode;
+  paintDirection();
+  $('selTrig').value = S.trigger;
+  $('soundGroup').style.display = S.trigger === 'sound' ? 'flex' : 'none';
+  $('slThr').value = S.threshold; $('vThr').textContent = S.threshold + '%'; $('micThr').style.left = S.threshold + '%';
+  $('slSlit').value = Math.round(S.slitPct * 100); $('vSlit').textContent = Math.round(S.slitPct*100) + '%';
+  $('finishLine').style.left = (S.slitPct * 100) + '%';
+  $('slSrc').value = S.srcWidth; $('vSrc').textContent = S.srcWidth + ' px';
+  $('slSpeed').value = S.pxPerSec; $('vSpeed').textContent = S.pxPerSec;
+  paintRunButton();
+}
+['slSlit','slSrc','slSpeed'].forEach(id => $(id).addEventListener('change', saveSettings));
+$('slThr').addEventListener('change', saveSettings);
+
+/* ---------------- Skrin kekal hidup ---------------- */
+let wakeLock = null;
+async function requestWakeLock(){
+  try{ if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  if(mode === 'running') requestWakeLock();
+  if(cameraOn && video.srcObject){ video.play().catch(()=>{}); restartPump(); }
+});
+
+/* ---------------- PWA ---------------- */
+let installEvent = null;
+addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); installEvent = e;
+  $('btnInstall').style.display = 'block';
+});
+$('btnInstall').addEventListener('click', async () => {
+  if(!installEvent) return;
+  installEvent.prompt();
+  await installEvent.userChoice;
+  installEvent = null;
+  $('btnInstall').style.display = 'none';
+});
+addEventListener('appinstalled', () => { $('btnInstall').style.display = 'none'; toast('Dipasang ke skrin utama'); });
+
+/* ---- Kemas kini automatik dari GitHub ----
+   Halaman menyemak versi baharu semasa dibuka, setiap minit, setiap kali
+   dibawa ke hadapan, dan bila talian pulih. Versi baharu hanya dipasang
+   bila selamat: tiada rakaman berjalan dan tiada imej sedang disemak. */
+let swReg = null, pendingWorker = null, reloading = false;
+
+function updateSafe(){
+  return mode === 'idle' && $('reviewScreen').style.display !== 'flex';
+}
+
+function applyUpdate(){
+  if(!pendingWorker || reloading) return;
+  reloading = true;
+  $('swState').textContent = 'Memasang kemas kini…';
+  pendingWorker.postMessage('skipWaiting');
+}
+
+function offerUpdate(worker){
+  pendingWorker = worker;
+  if(updateSafe()){
+    applyUpdate();
+  }else{
+    $('swState').textContent = 'Kemas kini sedia — akan dipasang selepas kerja semasa selesai.';
+    $('btnUpdate').style.display = 'block';
+    toast('Kemas kini tersedia');
+  }
+}
+
+function watchWorker(reg){
+  if(reg.waiting && navigator.serviceWorker.controller){ offerUpdate(reg.waiting); }
+  reg.addEventListener('updatefound', () => {
+    const w = reg.installing;
+    if(!w) return;
+    w.addEventListener('statechange', () => {
+      if(w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w);
+    });
+  });
+}
+
+function checkUpdate(manual){
+  if(!swReg){ if(manual) toast('Mod luar talian tidak aktif'); return; }
+  swReg.update()
+    .then(() => { if(manual && !pendingWorker) toast('Sudah versi terkini'); })
+    .catch(() => { if(manual) toast('Tiada talian untuk menyemak'); });
+}
+
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(!reloading) return;      // elak muat semula berulang
+    location.reload();
+  });
+
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => {
+        swReg = reg;
+        watchWorker(reg);
+        $('swState').textContent = 'Versi 5.4 — sedia digunakan tanpa internet.';
+        setInterval(() => {
+          checkUpdate(false);
+          if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
+        }, 60000);
+      })
+      .catch(() => { $('swState').textContent = 'Versi 5.4 — mod luar talian tidak aktif.'; });
+  });
+
+  addEventListener('online', () => checkUpdate(false));
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible') checkUpdate(false);
+  });
+}else{
+  $('swState').textContent = 'Versi 5.4 — hos melalui HTTPS untuk mod luar talian.';
+}
+
+$('btnUpdate').addEventListener('click', () => {
+  if(pendingWorker) applyUpdate();
+  else checkUpdate(true);
+});
+
+
+/* ================= Storan rakaman (IndexedDB) =================
+   Imej jalur MENTAH yang disimpan, bukan imej siap — skala saat dan tanda
+   dilukis semula setiap kali dibuka, jadi tanda masih boleh diubah kemudian.
+   Blob PNG disimpan terus; IndexedDB menerima blob, jadi tiada pembaziran
+   base64. localStorage tidak boleh dipakai kerana hadnya hanya beberapa MB. */
+
+const DB_NAME = 'photofinishx', DB_STORE = 'runs', MAX_RUNS = 50;
+let dbPromise = null, currentRunId = null, markSaveTimer = null;
+
+function db(){
+  if(dbPromise) return dbPromise;
+  dbPromise = new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if(!d.objectStoreNames.contains(DB_STORE)) d.createObjectStore(DB_STORE, { keyPath:'id' });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror   = () => rej(r.error);
+  });
+  return dbPromise;
+}
+
+function dbRun(mode, fn){
+  return db().then(d => new Promise((res, rej) => {
+    const tx = d.transaction(DB_STORE, mode);
+    const st = tx.objectStore(DB_STORE);
+    let out;
+    try{ out = fn(st); }catch(e){ rej(e); return; }
+    tx.oncomplete = () => res(out && out.result !== undefined ? out.result : out);
+    tx.onerror    = () => rej(tx.error);
+  }));
+}
+
+const dbPut   = rec => dbRun('readwrite', st => st.put(rec));
+const dbGet   = id  => dbRun('readonly',  st => st.get(id));
+const dbAll   = ()  => dbRun('readonly',  st => st.getAll());
+const dbDel   = id  => dbRun('readwrite', st => st.delete(id));
+const dbClear = ()  => dbRun('readwrite', st => st.clear());
+
+function cropStrip(){
+  const w = lastX, h = strip.height;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d', {alpha:false}).drawImage(strip, 0, 0, w, h, 0, 0, w, h);
+  return c;
+}
+
+function makeThumb(src){
+  const th = 54, tw = Math.min(400, Math.max(96, Math.round(src.width * th / src.height)));
+  const c = document.createElement('canvas');
+  c.width = tw; c.height = th;
+  c.getContext('2d', {alpha:false}).drawImage(src, 0, 0, tw, th);
+  return c;
+}
+
+const toBlob = (cv, type, q) => new Promise(r => cv.toBlob(r, type || 'image/png', q));
+
+async function saveCurrentRun(){
+  if(!strip || lastX < 2 || !currentRunId) return;
+  try{
+    const raw   = cropStrip();
+    const blob  = await toBlob(raw, 'image/png');
+    const thumb = await toBlob(makeThumb(raw), 'image/jpeg', 0.6);
+    if(!blob) return;
+    await dbPut({
+      id: currentRunId, ts: rev.ts, event: rev.event,
+      pps: rev.pps, t0: rev.t0, flip: flipView,
+      w: raw.width, h: raw.height,
+      bright: imgBright, contrast: imgContrast,
+      marks: marks.map(m => ({ x:m.x, t:m.t })),
+      blob, thumb
+    });
+    await trimRuns();
+    refreshRunCount();
+  }catch(e){
+    toast('Rekod gagal disimpan: ' + (e.name || e.message));
+  }
+}
+
+/* Tanda diubah kerap, jadi hanya data tanda dikemas kini — imej tidak
+   dikodkan semula setiap kali. */
+function queueMarkSave(){
+  if(!currentRunId) return;
+  clearTimeout(markSaveTimer);
+  markSaveTimer = setTimeout(async () => {
+    try{
+      const rec = await dbGet(currentRunId);
+      if(!rec) return;
+      rec.marks = marks.map(m => ({ x:m.x, t:m.t }));
+      rec.flip  = flipView;
+      await dbPut(rec);
+    }catch(e){}
+  }, 600);
+}
+
+async function trimRuns(){
+  const all = await dbAll();
+  if(all.length <= MAX_RUNS) return;
+  all.sort((a, b) => a.id - b.id);
+  for(const r of all.slice(0, all.length - MAX_RUNS)) await dbDel(r.id);
+}
+
+async function refreshRunCount(){
+  try{
+    const all = await dbAll();
+    $('btnRuns').textContent = all.length ? '🗂 REKOD (' + all.length + ')' : '🗂 REKOD';
+  }catch(e){}
+}
+
+function blobToImage(blob){
+  if(window.createImageBitmap) return createImageBitmap(blob);
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(blob), im = new Image();
+    im.onload  = () => { res(im); setTimeout(() => URL.revokeObjectURL(url), 1000); };
+    im.onerror = rej;
+    im.src = url;
+  });
+}
+
+/* ---- senarai rekod ---- */
+async function showRuns(){
+  $('runsScreen').style.display = 'flex';
+  const box = $('runList');
+  box.innerHTML = '<div class="empty-note">Memuatkan…</div>';
+
+  let all = [];
+  try{ all = await dbAll(); }catch(e){}
+  all.sort((a, b) => b.id - a.id);
+
+  if(!all.length){
+    box.innerHTML = '<div class="empty-note">Belum ada rekod.<br>Setiap rakaman disimpan sendiri sebaik tuan tekan TAMAT.</div>';
+  }else{
+    box.innerHTML = '';
+    for(const r of all){
+      const row = document.createElement('div');
+      row.className = 'run-row';
+
+      const im = document.createElement('img');
+      if(r.thumb){
+        const u = URL.createObjectURL(r.thumb);
+        im.src = u;
+        im.onload = () => URL.revokeObjectURL(u);
+      }
+
+      const dur = (r.t0 + r.w / r.pps * 1000) / 1000;
+      const info = document.createElement('div');
+      info.className = 'run-info';
+      info.innerHTML =
+        '<div class="run-title">' + (r.event || 'Tanpa nama acara') + '</div>' +
+        '<div class="run-sub">' + stampText(r.ts) + '</div>' +
+        '<div class="run-sub">' + dur.toFixed(1) + ' s · ' +
+        (r.marks ? r.marks.length : 0) + ' tanda · ' + r.pps + ' px/s</div>';
+
+      const dl = document.createElement('button');
+      dl.className = 'run-dl';
+      dl.textContent = '⬇';
+      dl.title = 'Simpan ke peranti';
+      dl.addEventListener('click', ev => { ev.stopPropagation(); downloadRun(r); });
+
+      const del = document.createElement('button');
+      del.className = 'run-del';
+      del.textContent = '🗑';
+      del.addEventListener('click', async ev => {
+        ev.stopPropagation();
+        if(!await askConfirm('Buang rekod ini?')) return;
+        await dbDel(r.id);
+        refreshRunCount();
+        showRuns();
+      });
+
+      row.addEventListener('click', () => openRun(r.id));
+      row.appendChild(im); row.appendChild(info); row.appendChild(dl); row.appendChild(del);
+      box.appendChild(row);
+    }
+  }
+
+  if(navigator.storage && navigator.storage.estimate){
+    try{
+      const q = await navigator.storage.estimate();
+      const mb = n => n >= 1073741824 ? (n / 1073741824).toFixed(1) + ' GB' : (n / 1048576).toFixed(1) + ' MB';
+      $('runsQuota').textContent = all.length + ' rekod · guna ' + mb(q.usage || 0) +
+        ' daripada ' + mb(q.quota || 0) + ' (had ' + MAX_RUNS + ' rekod)';
+    }catch(e){ $('runsQuota').textContent = all.length + ' rekod tersimpan.'; }
+  }else{
+    $('runsQuota').textContent = all.length + ' rekod tersimpan.';
+  }
+}
+
+async function openRun(id){
+  let rec = null;
+  try{ rec = await dbGet(id); }catch(e){}
+  if(!rec){ toast('Rekod tidak dijumpai'); return; }
+
+  const img = await blobToImage(rec.blob);
+  strip = document.createElement('canvas');
+  strip.width = rec.w; strip.height = rec.h;
+  sctx = strip.getContext('2d', {alpha:false});
+  sctx.imageSmoothingEnabled = false;
+  sctx.drawImage(img, 0, 0);
+  lastX = rec.w;
+
+  rev = { pps:rec.pps, t0:rec.t0, event:rec.event, ts:rec.ts };
+  flipView = !!rec.flip;
+  imgBright = rec.bright || 100; imgContrast = rec.contrast || 100;
+  $('slBright').value = imgBright; $('slContrast').value = imgContrast;
+  marks = (rec.marks || []).map(m => ({ x:m.x, t:m.t }));
+  currentRunId = rec.id;
+
+  $('runsScreen').style.display = 'none';
+  enterReview();
+}
+
+$('btnRuns').addEventListener('click', showRuns);
+$('runsClose').addEventListener('click', () => {
+  $('runsScreen').style.display = 'none';
+  if(cameraOn) video.play().catch(()=>{});
+});
+$('runsClear').addEventListener('click', async () => {
+  if(!await askConfirm('Buang SEMUA rekod tersimpan? Tindakan ini tidak boleh dibatalkan.')) return;
+  await dbClear();
+  refreshRunCount();
+  showRuns();
+});
+
+/* Minta storan kekal — tanpa ini Safari boleh membuang data selepas tujuh
+   hari aplikasi tidak dibuka. */
+async function requestPersistence(){
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      const already = await navigator.storage.persisted();
+      if(!already) await navigator.storage.persist();
+    }
+  }catch(e){}
+}
+
+/* ---------------- Mula ---------------- */
+function boot(){
+  preview.width = preview.clientWidth || 640;
+  loadSettings();
+  requestPersistence();
+  refreshRunCount();
+  startCamera();
+  restartPump();
+  uiLoop();
+}
+addEventListener('load', boot);
+addEventListener('pagehide', () => { releaseMic(); if(stream) stream.getTracks().forEach(t => t.stop()); });
+</script>
+</body>
+</html>
+
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PhotoFinishX">
 <link rel="apple-touch-icon" href="./icon-192.png">
