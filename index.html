@@ -42,6 +42,15 @@
   .stage{position:relative;flex:1;min-height:0;background:#000;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
   video{width:100%;height:100%;object-fit:contain;display:block}
   .finish-line{position:absolute;top:0;bottom:0;width:2px;background:#ff3b30;box-shadow:0 0 6px #ff3b30;z-index:5}
+  .dir-badge{position:absolute;top:8px;z-index:7;background:rgba(0,0,0,.6);border:1px solid var(--line);
+    color:var(--ink);border-radius:8px;padding:4px 9px;font-size:1rem;line-height:1;pointer-events:none;
+    display:flex;align-items:center;gap:4px}
+  .flipx{display:inline-block;transform:scaleX(-1)}
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:#0b0f14;border:1px solid var(--line);
+    border-radius:8px;overflow:hidden}
+  .seg button{padding:13px 6px;background:transparent;border:none;color:var(--dim);
+    font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .seg button.on{background:#21262d;color:var(--ink)}
   .cam-off{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;align-items:center;
     gap:8px;background:#0b0f14;z-index:6;text-align:center;padding:20px}
   .cam-off .big{font-size:2rem}
@@ -84,8 +93,8 @@
     border-radius:6px;border:1px solid rgba(255,213,74,.5)}
   .rev-body{flex:1;display:flex;flex-direction:column;padding:8px;gap:8px;overflow:hidden;min-height:0}
   .scroller{flex:1;min-height:0;background:#000;border:1px solid var(--accent);border-radius:10px;
-    overflow:auto;position:relative;-webkit-overflow-scrolling:touch}
-  .wrap{position:relative;display:inline-block;touch-action:pan-x pan-y}
+    overflow-x:auto;overflow-y:hidden;position:relative;-webkit-overflow-scrolling:touch}
+  .wrap{position:relative;display:inline-block;height:100%;touch-action:pan-x}
   #photoCanvas{display:block}
   #marker{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--warn);z-index:6;pointer-events:none}
   #marker::before{content:attr(data-t);position:absolute;top:4px;left:6px;background:var(--warn);color:#000;
@@ -173,6 +182,7 @@
     <div class="stage">
       <video id="webcam" autoplay playsinline muted></video>
       <div class="finish-line" id="finishLine" style="left:50%"></div>
+      <div class="dir-badge" id="dirBadge"><span id="dirIcon">🏃</span><span id="dirArrow">➔</span></div>
       <div class="cam-off" id="camOff">
         <div class="big">📷</div>
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
@@ -214,7 +224,7 @@
 
     <div class="rev-ctrl">
       <div class="sl"><label>Garisan masa</label><input type="range" id="slMarker" min="0" max="100" value="0"><span class="val mono" id="vMarker">0%</span></div>
-      <div class="sl"><label>Zum</label><input type="range" id="slZoom" min="50" max="800" step="10" value="100"><span class="val mono" id="vZoom">100%</span></div>
+      <div class="sl"><label>Lebar hirisan</label><input type="range" id="slZoom" min="50" max="900" step="10" value="100"><span class="val mono" id="vZoom">×1.0</span></div>
       <div class="sl2">
         <div class="mini">☀ <input type="range" id="slBright" min="40" max="260" value="100"><span class="v" id="vBright">100</span></div>
         <div class="mini">◐ <input type="range" id="slContrast" min="40" max="260" value="100"><span class="v" id="vContrast">100</span></div>
@@ -297,10 +307,10 @@
 
     <div class="field">
       <div class="lab">Arah pelari</div>
-      <select id="selDir">
-        <option value="left_to_right">Kiri ➔ Kanan</option>
-        <option value="right_to_left">Kanan ➔ Kiri</option>
-      </select>
+      <div class="seg">
+        <button id="dirLR"><span>🏃</span><span>➔</span></button>
+        <button id="dirRL"><span>⬅</span><span class="flipx">🏃</span></button>
+      </div>
       <div class="hint">Ini hanya menetapkan orientasi permulaan. Kalau imej masih nampak tercermin, tekan butang CERMIN di skrin semakan — semua masa kekal betul.</div>
     </div>
 
@@ -1133,7 +1143,7 @@ function enterReview(){
   renderMarks();
   markerX = Math.floor(W / 2);
   $('slMarker').min = 0; $('slMarker').max = W - 1; $('slMarker').value = markerX;
-  $('slZoom').value = 100; zoom = 1; $('vZoom').textContent = '100%';
+  $('slZoom').value = 100; zoom = 1; $('vZoom').textContent = '×1.0';
 
   // Skrin utama TIDAK disembunyikan (display:none akan menghentikan strim video
   // pada iOS dan memaksa kamera dibuka semula). Skrin semakan bertindih di atasnya.
@@ -1239,19 +1249,17 @@ $('btnClearMarks').addEventListener('click', async () => {
 });
 
 /* ---- zum, garisan, gerak ---- */
+/* Bukan zum. Tinggi imej sentiasa muat kotak; hanya paksi masa diregangkan,
+   sama seperti melebarkan setiap hirisan. Jadi tiada tatal menegak — pelari
+   kekal penuh dari kepala ke kaki, cuma badannya jadi lebih lebar. */
 function applyZoom(){
   const box = scroller.clientHeight || 200;
-  /* Simpan titik yang sedang dilihat supaya zum tidak melompat ke atas. */
-  const oldH  = photo.clientHeight || box;
-  const ratio = (scroller.scrollTop + box / 2) / oldH;
-
-  viewScale = (box / photo.height) * zoom;
-  const w = photo.width * viewScale, h = photo.height * viewScale;
-  photo.style.height = h + 'px';
+  const fit = box / photo.height;
+  viewScale = fit * zoom;
+  const w = photo.width * viewScale;
+  photo.style.height = box + 'px';
   photo.style.width  = w + 'px';
   wrap.style.width   = w + 'px';
-  wrap.style.height  = h + 'px';
-  scroller.scrollTop = Math.max(0, ratio * h - box / 2);
   marks.forEach((m, i) => {
     const el = marksLayer.children[i];
     if(el) el.style.left = (m.x * viewScale) + 'px';
@@ -1283,7 +1291,7 @@ function placeMarker(center){
 $('slMarker').addEventListener('input', e => setMarker(+e.target.value, false));
 $('slZoom').addEventListener('input', e => {
   zoom = +e.target.value / 100;
-  $('vZoom').textContent = e.target.value + '%';
+  $('vZoom').textContent = '×' + zoom.toFixed(1);
   applyZoom();
 });
 $('nudgeL2').addEventListener('click', () => setMarker(markerX - 10));
@@ -1566,6 +1574,23 @@ $('selTrig').addEventListener('change', e => {
 });
 $('btnProbe').addEventListener('click', () => S.cameraAuto ? probeAllCameras() : probeBest(false));
 
+function paintDirection(){
+  const lr = S.direction === 'left_to_right';
+  $('dirLR').classList.toggle('on', lr);
+  $('dirRL').classList.toggle('on', !lr);
+  /* Lencana diletak di sebelah yang pelari tuju, jadi arah jelas sekali pandang. */
+  const b = $('dirBadge');
+  b.style.left  = lr ? 'auto' : '8px';
+  b.style.right = lr ? '8px'  : 'auto';
+  $('dirIcon').className  = lr ? '' : 'flipx';
+  $('dirIcon').textContent = '🏃';
+  $('dirArrow').textContent = lr ? '➔' : '⬅';
+  b.style.flexDirection = lr ? 'row' : 'row-reverse';
+}
+
+$('dirLR').addEventListener('click', () => { S.direction = 'left_to_right'; paintDirection(); saveSettings(); });
+$('dirRL').addEventListener('click', () => { S.direction = 'right_to_left'; paintDirection(); saveSettings(); });
+
 $('slThr').addEventListener('input', e => {
   S.threshold = +e.target.value;
   $('vThr').textContent = S.threshold + '%';
@@ -1582,7 +1607,6 @@ async function closeSettings(){
 
   if(pick && pick !== 'auto') S.deviceId = pick;
   S.lensMode  = $('selLens').value;
-  S.direction = $('selDir').value;
   S.trigger   = $('selTrig').value;
   const fpsChanged = (+$('selFps').value !== S.targetFps) || ($('selRes').value !== S.resW + 'x' + S.resH);
   S.targetFps = +$('selFps').value;
@@ -1635,7 +1659,7 @@ function loadSettings(){
   $('inDelay').value = S.startDelay || 0;
   $('inAuto').value  = S.autoStop || 0;
   $('selLens').value = S.lensMode;
-  $('selDir').value  = S.direction;
+  paintDirection();
   $('selTrig').value = S.trigger;
   $('soundGroup').style.display = S.trigger === 'sound' ? 'flex' : 'none';
   $('slThr').value = S.threshold; $('vThr').textContent = S.threshold + '%'; $('micThr').style.left = S.threshold + '%';
@@ -1731,13 +1755,13 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       .then(reg => {
         swReg = reg;
         watchWorker(reg);
-        $('swState').textContent = 'Versi 5.1 — sedia digunakan tanpa internet.';
+        $('swState').textContent = 'Versi 5.2 — sedia digunakan tanpa internet.';
         setInterval(() => {
           checkUpdate(false);
           if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
         }, 60000);
       })
-      .catch(() => { $('swState').textContent = 'Versi 5.1 — mod luar talian tidak aktif.'; });
+      .catch(() => { $('swState').textContent = 'Versi 5.2 — mod luar talian tidak aktif.'; });
   });
 
   addEventListener('online', () => checkUpdate(false));
@@ -1745,7 +1769,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 5.1 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 5.2 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 $('btnUpdate').addEventListener('click', () => {
