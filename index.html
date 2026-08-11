@@ -42,14 +42,18 @@
   .stage{position:relative;flex:1;min-height:0;background:#000;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
   video{width:100%;height:100%;object-fit:contain;display:block}
   .finish-line{position:absolute;top:0;bottom:0;width:2px;background:#ff3b30;box-shadow:0 0 6px #ff3b30;z-index:5}
-  .dir-badge{position:absolute;top:8px;z-index:7;background:rgba(0,0,0,.6);border:1px solid var(--line);
-    color:var(--ink);border-radius:8px;padding:4px 9px;font-size:1rem;line-height:1;pointer-events:none;
-    display:flex;align-items:center;gap:4px}
-  .flipx{display:inline-block;transform:scaleX(-1)}
+  .preview-wrap{position:relative;flex-shrink:0}
+  .dir-badge{position:absolute;top:50%;transform:translateY(-50%);z-index:7;
+    background:rgba(0,0,0,.62);border:1px solid var(--line);color:var(--accent);
+    border-radius:8px;padding:4px 7px;pointer-events:none}
+  .dirgrp{display:flex;align-items:center;gap:1px}
+  .dirgrp.flipx{transform:scaleX(-1)}
+  .ico{width:21px;height:21px;display:block;flex-shrink:0}
   .seg{display:grid;grid-template-columns:1fr 1fr;background:#0b0f14;border:1px solid var(--line);
     border-radius:8px;overflow:hidden}
   .seg button{padding:13px 6px;background:transparent;border:none;color:var(--dim);
-    font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+    cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .seg button .ico{width:26px;height:26px}
   .seg button.on{background:#21262d;color:var(--ink)}
   .cam-off{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;align-items:center;
     gap:8px;background:#0b0f14;z-index:6;text-align:center;padding:20px}
@@ -182,7 +186,6 @@
     <div class="stage">
       <video id="webcam" autoplay playsinline muted></video>
       <div class="finish-line" id="finishLine" style="left:50%"></div>
-      <div class="dir-badge" id="dirBadge"><span id="dirIcon">🏃</span><span id="dirArrow">➔</span></div>
       <div class="cam-off" id="camOff">
         <div class="big">📷</div>
         <div class="t">Kamera dimatikan.<br>Penunjuk rakaman telefon juga padam.<br>Tekan KAMERA OFF di atas untuk hidupkan semula.</div>
@@ -193,7 +196,10 @@
       <button id="btnLock">🔓 KUNCI FOKUS & CAHAYA</button>
       <button id="btnRuns">🗂 REKOD</button>
     </div>
-    <canvas id="livePreview" height="54"></canvas>
+    <div class="preview-wrap">
+      <canvas id="livePreview" height="54"></canvas>
+      <div class="dir-badge" id="dirBadge"><span class="dirgrp"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12h13M12 7l5 5-5 5"/></svg></span></div>
+    </div>
   </div>
 
   <div class="controls">
@@ -308,8 +314,8 @@
     <div class="field">
       <div class="lab">Arah pelari</div>
       <div class="seg">
-        <button id="dirLR"><span>🏃</span><span>➔</span></button>
-        <button id="dirRL"><span>⬅</span><span class="flipx">🏃</span></button>
+        <button id="dirLR"><span class="dirgrp"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12h13M12 7l5 5-5 5"/></svg></span></button>
+        <button id="dirRL"><span class="dirgrp flipx"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12h13M12 7l5 5-5 5"/></svg></span></button>
       </div>
       <div class="hint">Ini hanya menetapkan orientasi permulaan. Kalau imej masih nampak tercermin, tekan butang CERMIN di skrin semakan — semua masa kekal betul.</div>
     </div>
@@ -1578,14 +1584,13 @@ function paintDirection(){
   const lr = S.direction === 'left_to_right';
   $('dirLR').classList.toggle('on', lr);
   $('dirRL').classList.toggle('on', !lr);
-  /* Lencana diletak di sebelah yang pelari tuju, jadi arah jelas sekali pandang. */
+  /* Lencana diletak di hujung tempat pelari bermula, di atas jalur pratonton.
+     Mencerminkan keseluruhan kumpulan membalikkan pelari DAN anak panah
+     sekali, jadi kedua-dua arah kelihatan seimbang. */
   const b = $('dirBadge');
-  b.style.left  = lr ? 'auto' : '8px';
-  b.style.right = lr ? '8px'  : 'auto';
-  $('dirIcon').className  = lr ? '' : 'flipx';
-  $('dirIcon').textContent = '🏃';
-  $('dirArrow').textContent = lr ? '➔' : '⬅';
-  b.style.flexDirection = lr ? 'row' : 'row-reverse';
+  b.style.left  = lr ? '8px'  : 'auto';
+  b.style.right = lr ? 'auto' : '8px';
+  b.querySelector('.dirgrp').classList.toggle('flipx', !lr);
 }
 
 $('dirLR').addEventListener('click', () => { S.direction = 'left_to_right'; paintDirection(); saveSettings(); });
@@ -1755,13 +1760,13 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       .then(reg => {
         swReg = reg;
         watchWorker(reg);
-        $('swState').textContent = 'Versi 5.2 — sedia digunakan tanpa internet.';
+        $('swState').textContent = 'Versi 5.3 — sedia digunakan tanpa internet.';
         setInterval(() => {
           checkUpdate(false);
           if(pendingWorker && updateSafe()) applyUpdate();   // pasang sebaik selamat
         }, 60000);
       })
-      .catch(() => { $('swState').textContent = 'Versi 5.2 — mod luar talian tidak aktif.'; });
+      .catch(() => { $('swState').textContent = 'Versi 5.3 — mod luar talian tidak aktif.'; });
   });
 
   addEventListener('online', () => checkUpdate(false));
@@ -1769,7 +1774,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     if(document.visibilityState === 'visible') checkUpdate(false);
   });
 }else{
-  $('swState').textContent = 'Versi 5.2 — hos melalui HTTPS untuk mod luar talian.';
+  $('swState').textContent = 'Versi 5.3 — hos melalui HTTPS untuk mod luar talian.';
 }
 
 $('btnUpdate').addEventListener('click', () => {
